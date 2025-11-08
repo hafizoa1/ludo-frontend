@@ -1,25 +1,26 @@
-import logo from './logo.svg';
-import './App.css';
+// src/App.jsx - Cleaner version without wrapper
+import { useEffect } from 'react';
+import PixiWrapper from './components/PixiWrapper';
+import gameService from './services/GameService';
 
 function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+  useEffect(() => {
+    // Auto-connect to game service when app starts
+    const connectToGame = async () => {
+      console.log('🎮 App: Auto-connecting to game service...');
+      await gameService.connect();
+    };
+    connectToGame();
+    
+    // Cleanup on unmount
+    return () => {
+      console.log('🎮 App: Cleaning up...');
+      gameService.disconnect();
+    };
+  }, []);
+
+  // No wrapper div needed - PixiWrapper handles full viewport
+  return <PixiWrapper />;
 }
 
 export default App;
