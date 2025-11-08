@@ -12,8 +12,6 @@ import GameControlsContainer from './components/GameControlsContainer';
 import PlayerAreaContainer from './components/PlayerAreaContainer';
 import GameUIContainer from './components/GameUIContainer';
 
-import { LAYOUT_CONFIG } from './config/layout.config';
-
 /**
  * GameScene - Refactored main game scene
  * Now focused solely on orchestration, with all logic delegated to specialized components

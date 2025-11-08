@@ -657,7 +657,7 @@ export function generateStepByStepPath(color, fromPosition, toPosition, boardSiz
 }
 
 // Export the configuration and all functions
-export default {
+const coordinateUtils = {
   BOARD_CONFIG,
   backendToPixel,
   pixelToBackend,
@@ -673,3 +673,5 @@ export default {
   positionsEqual,
   isValidGridPosition,
 };
+
+export default coordinateUtils;

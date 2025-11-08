@@ -1,6 +1,6 @@
 
 import * as PIXI from 'pixi.js';
-import { BOARD_CONFIG, gridToPixel, backendToPixel, isHomePosition, isSafePosition, getHomeColor } from '../../utils/coordinateUtils';
+import { BOARD_CONFIG, gridToPixel, backendToPixel } from '../../utils/coordinateUtils';
 import gsap from 'gsap';
 
 /**
@@ -497,6 +497,7 @@ createGamePath() {
       case 'green': angle = Math.PI / 2; break;  // Down (entry at row 1, col 8)
       case 'yellow': angle = Math.PI; break;     // Left (entry at row 8, col 13)
       case 'blue': angle = -Math.PI / 2; break; // Up (entry at row 13, col 6)
+      default: angle = 0; break; // Default to red
     }
     
     // Draw arrow

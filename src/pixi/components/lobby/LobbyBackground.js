@@ -80,6 +80,9 @@ class LobbyBackground extends PIXI.Container {
     case 'diamond':
       particle.poly([-size/2, 0, 0, -size/2, size/2, 0, 0, size/2]);
       break;
+    default:
+      particle.circle(0, 0, size);
+      break;
   }
 
   particle.fill({ color: color, alpha: 0.3 });
