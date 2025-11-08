@@ -53,9 +53,9 @@ class WebSocketService {
         connectHeaders: {
           login: this.sessionId
         },
-        debug: process.env.NODE_ENV === 'development' ? (str) => {
+        debug: (str) => {
           console.log('🔍 STOMP Debug:', str);
-        } : undefined,
+        },
         
         onConnect: (frame) => {
           console.log('✅ Connected to STOMP!');
