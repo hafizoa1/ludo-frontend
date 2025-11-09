@@ -64,11 +64,10 @@ class TextInput extends PIXI.Container {
     this.textDisplay.y = (this.options.height - this.textDisplay.height) / 2;
     this.addChild(this.textDisplay);
     
-    // Create cursor
+    // Create cursor (blinking text cursor)
     this.cursor = new PIXI.Graphics();
-    this.cursor.lineStyle(2, this.options.textColor);
-    this.cursor.moveTo(0, 5);
-    this.cursor.lineTo(0, this.options.height - 10);
+    this.cursor.rect(0, 5, 2, this.options.height - 10);
+    this.cursor.fill({ color: this.options.textColor });
     this.cursor.visible = false;
     this.addChild(this.cursor);
   }
