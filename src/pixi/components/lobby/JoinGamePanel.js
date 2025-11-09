@@ -125,8 +125,15 @@ class JoinGamePanel extends PIXI.Container {
       textColor: 0xFFFFFF,
       placeholderColor: 0xAAAAAA
     });
-    
+
     this.addChild(this.gameIdInput);
+
+    // Auto-focus the input field when panel is created
+    setTimeout(() => {
+      if (this.gameIdInput) {
+        this.gameIdInput.focus();
+      }
+    }, 100);
 
     // FIXED: Listen for input changes WITHOUT calling setText
     this.gameIdInput.onTextChange = (text) => {

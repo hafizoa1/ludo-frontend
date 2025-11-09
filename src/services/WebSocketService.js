@@ -169,11 +169,14 @@ class WebSocketService {
 
       case 'YOUR_TURN':
         console.log('🎯 My turn!');
-        eventBus.emit('turn.changed', {
-          isMyTurn: true,
-          message: response.message,
-          timestamp: Date.now()
-        });
+        // Add a small delay for smoother turn transitions
+        setTimeout(() => {
+          eventBus.emit('turn.changed', {
+            isMyTurn: true,
+            message: response.message,
+            timestamp: Date.now()
+          });
+        }, 500); // 500ms delay for better UX
         break;
 
       case 'INPUT_REQUIRED':

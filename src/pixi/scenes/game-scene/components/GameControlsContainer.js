@@ -116,18 +116,24 @@ class GameControlsContainer extends PIXI.Container {
    */
   handleTurnChange(data) {
     console.log('GameControls: Turn change', data);
-    
-    if (this.dice && data.isMyTurn) {
-      const currentState = this.stateCoordinator.getCurrentState();
-      const diceNotRolled = !currentState?.dice || 
-                            (currentState.dice.die1 === 0 && currentState.dice.die2 === 0);
-      
-      if (diceNotRolled && !this.dice.getIsRolling()) {
-        this.dice.setEnabled(true);
-        this.dice.showYourTurn();
+
+    if (this.dice) {
+      if (data.isMyTurn) {
+        const currentState = this.stateCoordinator.getCurrentState();
+        const diceNotRolled = !currentState?.dice ||
+                              (currentState.dice.die1 === 0 && currentState.dice.die2 === 0);
+
+        if (diceNotRolled && !this.dice.getIsRolling()) {
+          this.dice.setEnabled(true);
+          this.dice.showYourTurn();
+        }
+      } else {
+        // NOT my turn - disable the dice
+        this.dice.setEnabled(false);
+        this.dice.hideYourTurn();
       }
     }
-    
+
     // Update turn display
     if (this.turnText) {
       if (data.isMyTurn) {
