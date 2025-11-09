@@ -183,6 +183,18 @@ class WebSocketService {
         eventBus.emit('game.input.required', response);
         break;
 
+      case 'MOVE_OPTIONS':
+        console.log('🎯 Move options received');
+        // Forward to GameService for existing processing
+        eventBus.emit('websocket.personal.response', response);
+        break;
+
+      case 'CAPTURE_OPTIONS':
+        console.log('💥 Capture options received');
+        // Treat capture options the same as move options - reuse existing move panel
+        eventBus.emit('websocket.personal.response', { ...response, type: 'MOVE_OPTIONS' });
+        break;
+
       case 'INVALID_CHOICE':
         eventBus.emit('game.error', {
           message: response.message || 'Invalid choice',
@@ -308,6 +320,10 @@ class WebSocketService {
 
   rollDice() {
     this.send('/app/game.roll');
+  }
+
+  sendChoice(choice) {
+    this.send('/app/game.choice', { choice });
   }
 
   makeChoice(choice) {

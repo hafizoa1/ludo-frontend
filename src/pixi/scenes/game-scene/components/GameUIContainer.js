@@ -8,14 +8,14 @@ import { LAYOUT_CONFIG } from '../config/layout.config';
 class GameUIContainer extends PIXI.Container {
   constructor(layout, stateCoordinator) {
     super();
-    
+
     this.layout = layout;
     this.stateCoordinator = stateCoordinator;
-    
+
     this.background = null;
     this.titleText = null;
     this.activeMessages = [];
-    
+
     this.createBackground();
     this.createTitle();
     this.setupEventListeners();
