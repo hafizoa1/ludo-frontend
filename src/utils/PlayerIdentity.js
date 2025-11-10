@@ -55,8 +55,8 @@ class PlayerIdentity {
    */
   generateUUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : ((r & 0x3) | 0x8);
       return v.toString(16);
     });
   }
@@ -86,5 +86,6 @@ class PlayerIdentity {
   }
 }
 
-// Export singleton instance
-export default new PlayerIdentity();
+// Create and export singleton instance
+const playerIdentity = new PlayerIdentity();
+export default playerIdentity;
