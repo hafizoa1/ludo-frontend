@@ -456,22 +456,55 @@ class JoinGamePanel extends PIXI.Container {
   }
 
   /**
+   * Reset panel state
+   */
+  reset() {
+    console.log('🔗 JoinGamePanel: Resetting...');
+
+    // Clear input field
+    if (this.gameIdInput) {
+      this.gameIdInput.setText('');
+    }
+
+    // Clear status text
+    if (this.statusText) {
+      this.statusText.text = '';
+    }
+
+    // Hide loading spinner
+    if (this.loadingSpinner) {
+      this.loadingSpinner.visible = false;
+      if (this.spinAnimation) {
+        this.spinAnimation.kill();
+        this.spinAnimation = null;
+      }
+    }
+
+    // Re-enable join button
+    if (this.joinButton) {
+      this.joinButton.setEnabled(true);
+    }
+
+    this.isJoining = false;
+  }
+
+  /**
    * Cleanup
    */
   destroy() {
     console.log('🔗 JoinGamePanel: Destroying...');
-    
+
     // Kill animations
     gsap.killTweensOf([this, this.panel, this.statusText, this.loadingSpinner]);
     if (this.spinAnimation) {
       this.spinAnimation.kill();
     }
-    
+
     // Destroy children
     if (this.panel) this.panel.destroy();
     if (this.gameIdInput) this.gameIdInput.destroy();
     if (this.joinButton) this.joinButton.destroy();
-    
+
     super.destroy();
   }
 }

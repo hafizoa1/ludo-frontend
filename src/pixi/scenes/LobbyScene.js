@@ -317,10 +317,12 @@ class LobbyScene extends Container { // Refactored inheritance
             onComplete: () => {
                 this.waitingRoom.visible = false;
                 this.waitingRoom.stopWaitingAnimation();
+                this.waitingRoom.reset(); // Clear waiting room state
             }
         });
 
-        // Show menu panels
+        // Reset and show menu panels
+        this.joinGamePanel.reset(); // Clear join game input
         this.createGamePanel.visible = true;
         this.joinGamePanel.visible = true;
 

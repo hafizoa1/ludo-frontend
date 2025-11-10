@@ -317,16 +317,38 @@ class WaitingRoom extends PIXI.Container {
  }
 
  /**
+  * Reset waiting room state
+  */
+ reset() {
+   console.log('⏳ WaitingRoom: Resetting...');
+
+   // Clear game ID
+   this.gameId = '';
+   this.gameIdText.text = 'Game ID: ';
+
+   // Clear players
+   this.players = [];
+   this.playersContainer.removeChildren();
+
+   // Reset status text
+   this.statusText.text = 'Waiting for players...';
+
+   // Stop any ongoing animations
+   this.stopWaitingAnimation();
+   gsap.killTweensOf(this.gameIdText);
+ }
+
+ /**
   * Cleanup
   */
  destroy() {
    console.log('⏳ WaitingRoom: Destroying...');
-   
+
    this.stopWaitingAnimation();
-   
+
    // Kill all animations
    gsap.killTweensOf([this, this.panel, this.statusText, this.gameIdText]);
-   
+
    super.destroy();
  }
 }
