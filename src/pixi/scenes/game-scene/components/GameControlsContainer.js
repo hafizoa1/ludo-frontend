@@ -119,11 +119,8 @@ class GameControlsContainer extends PIXI.Container {
 
     if (this.dice) {
       if (data.isMyTurn) {
-        const currentState = this.stateCoordinator.getCurrentState();
-        const diceNotRolled = !currentState?.dice ||
-                              (currentState.dice.die1 === 0 && currentState.dice.die2 === 0);
-
-        if (diceNotRolled && !this.dice.getIsRolling()) {
+        // It's my turn - always enable dice for rolling (new turn)
+        if (!this.dice.getIsRolling()) {
           this.dice.setEnabled(true);
           this.dice.showYourTurn();
         }
