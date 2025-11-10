@@ -134,6 +134,12 @@ class LobbyScene extends Container { // Refactored inheritance
             this.showWaitingRoom(data.gameId);
         });
 
+        // Leave game event
+        eventBus.subscribe('game.left', () => {
+            console.log('🏠 LobbyScene: Player left game, returning to menu');
+            this.showMainMenu();
+        });
+
         // Game start event
         eventBus.subscribe('game.state.updated', (data) => {
             if (data.newState && data.newState.gameStatus === 'IN_PROGRESS') {

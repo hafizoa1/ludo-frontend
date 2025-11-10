@@ -414,6 +414,12 @@ class PixiApp {
       }
     });
 
+    // Listen for player leaving game
+    eventBus.subscribe('game.left', () => {
+      console.log('🎮 PixiApp: Player left game, returning to lobby');
+      this.sceneManager.showScene('lobby');
+    });
+
     // Listen for connection status
     eventBus.subscribe('game.connection.established', () => {
       // Could show connection indicator

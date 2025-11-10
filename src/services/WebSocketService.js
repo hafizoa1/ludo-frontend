@@ -208,6 +208,13 @@ class WebSocketService {
         // No action needed - just acknowledgment
         break;
 
+      case 'LEFT_GAME':
+        console.log('👋 Left game successfully');
+        eventBus.emit('game.left', {
+          message: response.message
+        });
+        break;
+
       default:
         console.log('❓ Unhandled personal response:', response.type);
         eventBus.emit('websocket.personal.response', response);
