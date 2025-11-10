@@ -3,6 +3,7 @@
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 import eventBus from '../utils/EventBus';
+import PlayerIdentity from '../utils/PlayerIdentity';
 
 /**
  * WebSocketService - Pure STOMP communication layer
@@ -310,12 +311,14 @@ class WebSocketService {
   }
 
   createGame() {
-    this.send('/app/game.create');
+    const playerId = PlayerIdentity.getPlayerId();
+    this.send('/app/game.create', { playerId });
   }
 
   joinGame(gameId) {
     this.currentGameId = gameId;
-    this.send('/app/game.join', { gameId });
+    const playerId = PlayerIdentity.getPlayerId();
+    this.send('/app/game.join', { gameId, playerId });
   }
 
   rollDice() {
