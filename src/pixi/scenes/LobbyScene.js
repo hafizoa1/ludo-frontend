@@ -323,6 +323,7 @@ class LobbyScene extends Container { // Refactored inheritance
 
         // Reset and show menu panels
         this.joinGamePanel.reset(); // Clear join game input
+        this.createGamePanel.resetToIdle(); // Clear create game code/status
         this.createGamePanel.visible = true;
         this.joinGamePanel.visible = true;
 
