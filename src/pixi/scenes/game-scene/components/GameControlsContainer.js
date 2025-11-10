@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js';
 import DiceComponent from '../../../components/game/DiceComponent';
 import Button from '../../../components/ui/Button';
+import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 import webSocketService from '../../../../services/WebSocketService';
 
 /**
@@ -17,6 +18,7 @@ class GameControlsContainer extends PIXI.Container {
     this.dice = null;
     this.turnText = null;
     this.leaveButton = null;
+    this.confirmDialog = null;
 
     this.createComponents();
     this.setupEventListeners();
@@ -67,16 +69,34 @@ class GameControlsContainer extends PIXI.Container {
     this.leaveButton.y = 20 * scaleFactor;
     this.leaveButton.onButtonClick = () => this.handleLeaveGame();
     this.addChild(this.leaveButton);
+
+    // Create confirmation dialog (hidden by default)
+    const canvasWidth = this.layout.viewport?.width || window.innerWidth;
+    const canvasHeight = this.layout.viewport?.height || window.innerHeight;
+
+    this.confirmDialog = new ConfirmDialog({
+      title: 'Leave Game?',
+      message: 'Are you sure you want to leave the game?\nYou will forfeit the match.',
+      confirmText: 'Leave',
+      cancelText: 'Stay',
+      canvasWidth: canvasWidth,
+      canvasHeight: canvasHeight,
+      onConfirm: () => {
+        console.log('🚪 Leaving game...');
+        webSocketService.leaveGame();
+      },
+      onCancel: () => {
+        console.log('Cancelled leave');
+      }
+    });
+    this.addChild(this.confirmDialog);
   }
 
   /**
    * Handle leave game button click
    */
   handleLeaveGame() {
-    if (window.confirm('Are you sure you want to leave the game?')) {
-      console.log('🚪 Leaving game...');
-      webSocketService.leaveGame();
-    }
+    this.confirmDialog.show();
   }
 
   /**
@@ -219,6 +239,13 @@ class GameControlsContainer extends PIXI.Container {
       // Redraw button with new size
       this.leaveButton.createButton();
     }
+
+    // Update confirm dialog layout
+    if (this.confirmDialog) {
+      const canvasWidth = this.layout.viewport?.width || window.innerWidth;
+      const canvasHeight = this.layout.viewport?.height || window.innerHeight;
+      this.confirmDialog.updateLayout(canvasWidth, canvasHeight);
+    }
   }
 
   /**
@@ -227,6 +254,7 @@ class GameControlsContainer extends PIXI.Container {
   destroy(options) {
     if (this.dice) this.dice.destroy();
     if (this.leaveButton) this.leaveButton.destroy();
+    if (this.confirmDialog) this.confirmDialog.destroy();
     super.destroy(options);
   }
 }
