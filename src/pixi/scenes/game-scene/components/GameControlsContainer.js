@@ -1,5 +1,7 @@
 import * as PIXI from 'pixi.js';
 import DiceComponent from '../../../components/game/DiceComponent';
+import Button from '../../../components/ui/Button';
+import webSocketService from '../../../../services/WebSocketService';
 
 /**
  * GameControlsContainer - Encapsulates dice and turn indicator
@@ -7,14 +9,15 @@ import DiceComponent from '../../../components/game/DiceComponent';
 class GameControlsContainer extends PIXI.Container {
   constructor(layout, stateCoordinator, connectionHandler) {
     super();
-    
+
     this.layout = layout;
     this.stateCoordinator = stateCoordinator;
     this.connectionHandler = connectionHandler;
-    
+
     this.dice = null;
     this.turnText = null;
-    
+    this.leaveButton = null;
+
     this.createComponents();
     this.setupEventListeners();
   }
@@ -48,6 +51,32 @@ class GameControlsContainer extends PIXI.Container {
     this.turnText.x = uiLayout.turnIndicator.x;
     this.turnText.y = uiLayout.turnIndicator.y;
     this.addChild(this.turnText);
+
+    // Create Leave Game button (positioned responsively)
+    const scaleFactor = this.layout.getScaleFactor();
+    this.leaveButton = new Button({
+      text: 'Leave Game',
+      width: 120 * scaleFactor,
+      height: 40 * scaleFactor,
+      backgroundColor: 0xff4444,
+      hoverColor: 0xcc3333,
+      pressedColor: 0x992222,
+      fontSize: Math.max(12, 14 * scaleFactor)
+    });
+    this.leaveButton.x = 20 * scaleFactor;
+    this.leaveButton.y = 20 * scaleFactor;
+    this.leaveButton.onButtonClick = () => this.handleLeaveGame();
+    this.addChild(this.leaveButton);
+  }
+
+  /**
+   * Handle leave game button click
+   */
+  handleLeaveGame() {
+    if (window.confirm('Are you sure you want to leave the game?')) {
+      console.log('🚪 Leaving game...');
+      webSocketService.leaveGame();
+    }
   }
 
   /**
@@ -167,16 +196,28 @@ class GameControlsContainer extends PIXI.Container {
   updateLayout() {
     const diceLayout = this.layout.getDiceLayout();
     const uiLayout = this.layout.getUILayout();
-    
+    const scaleFactor = this.layout.getScaleFactor();
+
     if (this.dice) {
       this.dice.x = diceLayout.x;
       this.dice.y = diceLayout.y;
     }
-    
+
     if (this.turnText) {
       this.turnText.x = uiLayout.turnIndicator.x;
       this.turnText.y = uiLayout.turnIndicator.y;
       this.turnText.style.fontSize = uiLayout.turnIndicator.fontSize;
+    }
+
+    if (this.leaveButton) {
+      this.leaveButton.x = 20 * scaleFactor;
+      this.leaveButton.y = 20 * scaleFactor;
+      // Update button size
+      this.leaveButton.options.width = 120 * scaleFactor;
+      this.leaveButton.options.height = 40 * scaleFactor;
+      this.leaveButton.options.fontSize = Math.max(12, 14 * scaleFactor);
+      // Redraw button with new size
+      this.leaveButton.createButton();
     }
   }
 
@@ -185,6 +226,7 @@ class GameControlsContainer extends PIXI.Container {
    */
   destroy(options) {
     if (this.dice) this.dice.destroy();
+    if (this.leaveButton) this.leaveButton.destroy();
     super.destroy(options);
   }
 }
