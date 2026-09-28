@@ -111,10 +111,12 @@ class GameService {
         eventBus.emit('game.message', response);
         break;
       case 'MOVE_OPTIONS':
-        // Parse move options with delay for animations
-        if (this.isMoveOptionsMessage(response.message)) {
-          const moveOptions = this.parseMoveOptions(response.message);
-          
+        // Structured options come from the backend via GameState.availableMoves
+        // (see Game.currentOptions / MoveOptionState on the server) - the index
+        // there is exactly what /app/game.choice expects back.
+        if (response.data?.availableMoves?.length) {
+          const moveOptions = this.mapAvailableMoves(response.data.availableMoves);
+
           console.log('🎮 GameService: Delaying move options for animation');
           setTimeout(() => {
             console.log('🎮 GameService: Emitting move options after delay');
@@ -304,60 +306,23 @@ class GameService {
   }
 
   // =========================================================================
-  // MOVE OPTIONS PARSING
+  // MOVE OPTIONS MAPPING
   // =========================================================================
 
   /**
-   * Check if message contains move options
+   * Map the backend's structured MoveOptionState list onto the shape the UI
+   * already consumes (MoveManager needs `number` + `description`; the rest
+   * is carried through for future use, e.g. piece highlighting).
    */
-  isMoveOptionsMessage(message) {
-    if (!message) return false;
-    
-    return message.includes('Available moves:') ||
-           message.includes('Enter game option') ||
-           message.includes('Choose which piece') ||
-           (message.includes('1.') && message.includes('Move'));
-  }
-
-  /**
-   * Parse move options from text message
-   */
-  parseMoveOptions(message) {
-    console.log('DEBUG: Parsing message:', message);
-    const lines = message.split('\n');
-    const moves = [];
-
-    // Check if this is a simple "Enter game option (1-8)" message
-    const optionsMatch = message.match(/\(Options:\s*(\d+)-(\d+)\)/);
-    if (optionsMatch && lines.length === 1) {
-      const start = parseInt(optionsMatch[1]);
-      const end = parseInt(optionsMatch[2]);
-      
-      console.log(`DEBUG: Creating ${end - start + 1} generic options`);
-      
-      for (let i = start; i <= end; i++) {
-        moves.push({
-          number: i,
-          description: `Game option ${i}`,
-          originalLine: `${i}. Game option ${i}`
-        });
-      }
-    } else {
-      // Detailed format - parse numbered lines
-      lines.forEach((line) => {
-        const match = line.match(/^(\d+)\.\s*(.+)/);
-        if (match) {
-          moves.push({
-            number: parseInt(match[1]),
-            description: match[2].trim(),
-            originalLine: line.trim()
-          });
-        }
-      });
-    }
-    
-    console.log('DEBUG: Parsed moves:', moves);
-    return moves;
+  mapAvailableMoves(availableMoves) {
+    return availableMoves.map((option) => ({
+      number: option.index,
+      description: option.description,
+      pieceId: option.pieceId,
+      diceValue: option.diceValue,
+      moveType: option.moveType,
+      targetPosition: option.targetPosition
+    }));
   }
 
   // =========================================================================
