@@ -202,6 +202,7 @@ class PlayerPanel extends PIXI.Container {
   createTurnIndicator() {
     this.turnIndicator = new PIXI.Container();
     this.turnIndicator.visible = false;
+    this.turnIndicator.alpha = 0;
     
     // Animated border for current turn
     const glowBorder = new PIXI.Graphics();
@@ -420,7 +421,13 @@ class PlayerPanel extends PIXI.Container {
    */
   showTurnIndicator() {
     this.turnIndicator.visible = true;
-    
+    gsap.killTweensOf(this.turnIndicator);
+    gsap.to(this.turnIndicator, {
+      alpha: 1,
+      duration: 0.3,
+      ease: "power2.out"
+    });
+
     // Animate glow border
     gsap.to(this.glowBorder, {
       alpha: 0.8,
@@ -449,8 +456,16 @@ class PlayerPanel extends PIXI.Container {
    * Hide turn indicator
    */
   hideTurnIndicator() {
-    this.turnIndicator.visible = false;
-    
+    gsap.killTweensOf(this.turnIndicator);
+    gsap.to(this.turnIndicator, {
+      alpha: 0,
+      duration: 0.3,
+      ease: "power2.out",
+      onComplete: () => {
+        this.turnIndicator.visible = false;
+      }
+    });
+
     // Stop glow animation
     gsap.killTweensOf(this.glowBorder);
     
