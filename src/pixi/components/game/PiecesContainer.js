@@ -406,7 +406,22 @@ class PiecesContainer extends PIXI.Container {
    * Each point in the path represents one cell/step
    */
   animatePieceAlongPath(piece, path, finalGridPosition) {
-    if (path.length === 0) return;
+    if (path.length === 0) {
+      // movePieceToPosition already emitted piece.animation.start before
+      // computing this path - StateCoordinator's activeAnimations counter
+      // is now +1 and only a matching piece.animation.complete brings it
+      // back down. Skipping this emit here left isAnimating stuck true
+      // forever whenever the computed path came back empty, silently
+      // freezing all future moves (the panel stops rendering and clicks
+      // stop registering, with no error anywhere).
+      piece.gridPosition = { ...finalGridPosition };
+      eventBus.emit('piece.animation.complete', {
+        pieceId: piece.id,
+        finalPosition: finalGridPosition,
+        timestamp: Date.now()
+      });
+      return;
+    }
 
     console.log(`🔴 Animating ${piece.id} step-by-step along ${path.length} points`);
 
