@@ -234,10 +234,8 @@ class CreateGamePanel extends PIXI.Container {
     this.isCreating = true;
     this.showCreating();
     
-    // Send create game request through EventBus
-    eventBus.emit('lobby.create.game.request');
-    
-    // Also call GameService directly as backup
+    // Nothing subscribes to an eventBus event for this - calling GameService
+    // directly is the real mechanism, not a fallback for one.
     import('../../../services/GameService').then(({ default: gameService }) => {
       gameService.createGame();
     });

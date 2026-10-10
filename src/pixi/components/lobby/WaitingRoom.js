@@ -200,12 +200,6 @@ class WaitingRoom extends PIXI.Container {
         this.updatePlayers(data.newState.players);
       }
     });
-
-    // Listen for player events
-    eventBus.subscribe('game.player.update', (event) => {
-      console.log('⏳ WaitingRoom: Player update:', event);
-      // Handle player join/leave animations
-    });
   }
 
   /**

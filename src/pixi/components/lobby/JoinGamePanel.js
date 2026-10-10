@@ -297,10 +297,8 @@ class JoinGamePanel extends PIXI.Container {
     this.isJoining = true;
     this.showJoining();
     
-    // Send join game request through EventBus
-    eventBus.emit('lobby.join.game.request', { gameId: this.gameIdValue });
-    
-    // Also call GameService directly as backup
+    // Nothing subscribes to an eventBus event for this - calling GameService
+    // directly is the real mechanism, not a fallback for one.
     import('../../../services/GameService').then(({ default: gameService }) => {
       gameService.joinGame(this.gameIdValue);
     });

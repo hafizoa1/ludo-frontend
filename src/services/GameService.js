@@ -63,14 +63,6 @@ class GameService {
       this.handleDiceEvent(event);
     });
 
-    eventBus.subscribe('game.move', (event) => {
-      this.handleMoveEvent(event);
-    });
-
-    eventBus.subscribe('game.players', (event) => {
-      this.handlePlayerEvent(event);
-    });
-
     // Game lifecycle events
     eventBus.subscribe('game.created', (data) => {
       this.currentGameId = data.gameId;
@@ -174,27 +166,6 @@ class GameService {
       } 
     });
   }
-  }
-
-  /**
-   * Handle move events
-   */
-  handleMoveEvent(event) {
-    console.log('🎮 GameService: Move event:', event.type);
-    
-    if (event.success && event.data) {
-      this.updateGameState(event.data);
-    }
-    
-    eventBus.emit('game.move.executed', event);
-  }
-
-  /**
-   * Handle player events
-   */
-  handlePlayerEvent(event) {
-    console.log('🎮 GameService: Player event:', event.type);
-    eventBus.emit('game.player.update', event);
   }
 
   // =========================================================================
