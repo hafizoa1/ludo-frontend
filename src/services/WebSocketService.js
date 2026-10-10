@@ -231,6 +231,18 @@ class WebSocketService {
         });
         break;
 
+      case 'SERVER_ERROR':
+        // Backend's catch-all for anything unexpected (see
+        // GameStompController.handleException) - without this case it fell
+        // into the same silent default/console.log branch LOBBY_EXPIRED and
+        // GAME_ENDED_TIMEOUT used to.
+        console.error('Server error:', response.message || response.error);
+        eventBus.emit('game.error', {
+          message: response.message || response.error || 'An unexpected error occurred',
+          type: 'SERVER_ERROR'
+        });
+        break;
+
       case 'CHOICE_RECEIVED':
         console.log('Choice acknowledged by server');
         // No action needed - just acknowledgment
