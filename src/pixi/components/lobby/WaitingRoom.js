@@ -5,25 +5,34 @@ import { gsap } from 'gsap';
 import eventBus from '../../../utils/EventBus';
 import Panel from '../ui/Panel';
 
+// Must match the backend's game.join-timeout-seconds (default 300, see
+// GameManager) - there's no single source of truth for this yet, since the
+// server doesn't currently send its own timeout duration to the client.
+// If that property is ever overridden, this needs updating to match.
+const JOIN_TIMEOUT_SECONDS = 300;
+
 /**
  * WaitingRoom - Shows players waiting for game to start
  */
 class WaitingRoom extends PIXI.Container {
   constructor() {
     super();
-    
+
     this.panel = null;
     this.titleText = null;
     this.gameIdText = null;
     this.playersContainer = null;
     this.statusText = null;
+    this.countdownText = null;
     this.waitingAnimation = null;
-    
+    this.countdownInterval = null;
+    this.countdownDeadline = null;
+
     this.gameId = '';
     this.players = [];
-    
-    console.log('⏳ WaitingRoom created');
-    
+
+    console.log('WaitingRoom created');
+
     this.setupRoom();
     this.setupEventListeners();
   }
@@ -54,6 +63,9 @@ class WaitingRoom extends PIXI.Container {
 
     // Create status text
     this.createStatusText();
+
+    // Create countdown text
+    this.createCountdownText();
   }
 
   /**
@@ -118,8 +130,64 @@ class WaitingRoom extends PIXI.Container {
     this.statusText = new PIXI.Text('Waiting for players to join...', statusStyle);
     this.statusText.anchor.set(0.5);
     this.statusText.x = 300;
-    this.statusText.y = 250;
+    this.statusText.y = 235;
     this.addChild(this.statusText);
+  }
+
+  /**
+   * Create countdown text - shows time left before the room expires if no
+   * second player joins (see GameManager's join-timeout on the backend).
+   */
+  createCountdownText() {
+    const countdownStyle = new PIXI.TextStyle({
+      fontFamily: 'Arial, sans-serif',
+      fontSize: 16,
+      fill: '#ffdd44',
+      align: 'center'
+    });
+
+    this.countdownText = new PIXI.Text('', countdownStyle);
+    this.countdownText.anchor.set(0.5);
+    this.countdownText.x = 300;
+    this.countdownText.y = 265;
+    this.addChild(this.countdownText);
+  }
+
+  /**
+   * Start the visual countdown to when this room expires. Purely a display -
+   * the backend is the actual authority on when the room ends; this never
+   * removes the room itself, it just stops ticking at 0:00 and waits for the
+   * real LOBBY_EXPIRED message to arrive.
+   */
+  startCountdown(totalSeconds = JOIN_TIMEOUT_SECONDS) {
+    this.stopCountdown();
+
+    this.countdownDeadline = Date.now() + totalSeconds * 1000;
+    this.tickCountdown();
+    this.countdownInterval = setInterval(() => this.tickCountdown(), 1000);
+  }
+
+  tickCountdown() {
+    const remainingMs = this.countdownDeadline - Date.now();
+    const remainingSeconds = Math.max(0, Math.round(remainingMs / 1000));
+
+    const minutes = Math.floor(remainingSeconds / 60);
+    const seconds = remainingSeconds % 60;
+    const formatted = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+    this.countdownText.text = `Expires in ${formatted} if no one joins`;
+
+    if (remainingSeconds === 0) {
+      this.stopCountdown();
+    }
+  }
+
+  stopCountdown() {
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+      this.countdownInterval = null;
+    }
+    this.countdownDeadline = null;
   }
 
   /**
@@ -146,7 +214,15 @@ class WaitingRoom extends PIXI.Container {
   setGameId(gameId) {
     this.gameId = gameId;
     this.gameIdText.text = `Game ID: ${gameId}`;
-    
+
+    // Starts here rather than in the constructor since this is called right
+    // when the room is actually shown - the same moment the backend's own
+    // join-timeout timer started. A joiner reaching this (not just the
+    // creator) is harmless: the scene transitions away almost immediately
+    // once the room is full, clearing this via stopWaitingAnimation().
+    this.startCountdown();
+
+
     // Add pulsing animation to game ID
     gsap.to(this.gameIdText, {
       alpha: 0.7,
@@ -302,25 +378,29 @@ class WaitingRoom extends PIXI.Container {
   * Stop waiting animation
   */
  stopWaitingAnimation() {
-   console.log('⏳ WaitingRoom: Stopping waiting animation');
-   
+   console.log('WaitingRoom: Stopping waiting animation');
+
    if (this.waitingAnimation) {
      this.waitingAnimation.kill();
      this.waitingAnimation = null;
    }
-   
+
    // Reset alpha
    gsap.to(this.panel, { alpha: 1, duration: 0.3 });
-   
+
    // Kill status text animation
    gsap.killTweensOf(this.statusText);
+
+   // Called from both exit paths (back to menu, transition into the game) -
+   // the countdown display shouldn't keep ticking once either happens.
+   this.stopCountdown();
  }
 
  /**
   * Reset waiting room state
   */
  reset() {
-   console.log('⏳ WaitingRoom: Resetting...');
+   console.log('WaitingRoom: Resetting...');
 
    // Clear game ID
    this.gameId = '';
@@ -332,6 +412,7 @@ class WaitingRoom extends PIXI.Container {
 
    // Reset status text
    this.statusText.text = 'Waiting for players...';
+   this.countdownText.text = '';
 
    // Stop any ongoing animations
    this.stopWaitingAnimation();

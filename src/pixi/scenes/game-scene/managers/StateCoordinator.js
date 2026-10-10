@@ -76,6 +76,14 @@ class StateCoordinator extends PIXI.Container {
       this.emit('game:ended', { winner: data.winner });
     });
 
+    // A game ending by forfeit (AFK timeout, disconnect, or an opponent
+    // leaving) never carries a GameState snapshot - the backend sends a
+    // plain message, not a gameOver-flagged state - so this can't go
+    // through the state.updated/gameOver path above. Separate event.
+    this.subscribe('game.ended.forced', (data) => {
+      this.emit('game:ended:forced', { message: data.message });
+    });
+
     // Error and connection events
     this.subscribe('game.error', (data) => {
       this.emit('error:game', { error: data.error });

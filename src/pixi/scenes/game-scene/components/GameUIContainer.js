@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js';
 import { gsap } from 'gsap';
 import { LAYOUT_CONFIG } from '../config/layout.config';
+import eventBus from '../../../../utils/EventBus';
 
 /**
  * GameUIContainer - Manages UI overlays, messages, and game over screen
@@ -64,6 +65,11 @@ class GameUIContainer extends PIXI.Container {
     // Handle game over
     this.stateCoordinator.on('game:ended', (data) => {
       this.showGameOverScreen(data.winner);
+    });
+
+    // Handle a game forced to end (AFK timeout, disconnect, opponent leaving)
+    this.stateCoordinator.on('game:ended:forced', (data) => {
+      this.showForcedEndScreen(data.message);
     });
   }
 
@@ -161,14 +167,82 @@ class GameUIContainer extends PIXI.Container {
     this.addChild(overlay);
     
     // Animate
-    gsap.fromTo(winText, 
+    gsap.fromTo(winText,
       { scale: 0, rotation: -Math.PI },
-      { 
-        scale: 1, 
-        rotation: 0, 
-        duration: 1, 
-        ease: "bounce.out" 
+      {
+        scale: 1,
+        rotation: 0,
+        duration: 1,
+        ease: "bounce.out"
       }
+    );
+  }
+
+  /**
+   * Show a forced-end screen (AFK timeout, disconnect, or opponent leaving).
+   * Separate from showGameOverScreen because these come as a plain message
+   * string, not a winning color - there's nothing to look up in
+   * getPlayerColor(), and no GameState ever arrives to drive the normal
+   * game:ended path (see StateCoordinator's game.ended.forced relay).
+   */
+  showForcedEndScreen(message) {
+    const canvasDims = this.layout.getCanvasDimensions();
+
+    const overlay = new PIXI.Graphics();
+    overlay.rect(0, 0, canvasDims.width, canvasDims.height);
+    overlay.fill({ color: 0x000000, alpha: 0.8 });
+
+    const messageText = new PIXI.Text(message, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: 32,
+      fontWeight: 'bold',
+      fill: '#ffffff',
+      align: 'center',
+      wordWrap: true,
+      wordWrapWidth: canvasDims.width * 0.8
+    });
+    messageText.anchor.set(0.5);
+    messageText.x = canvasDims.width / 2;
+    messageText.y = canvasDims.height / 2 - 40;
+    overlay.addChild(messageText);
+
+    const buttonBg = new PIXI.Graphics();
+    buttonBg.roundRect(-100, -25, 200, 50, 8);
+    buttonBg.fill({ color: 0x4CAF50 });
+    buttonBg.x = canvasDims.width / 2;
+    buttonBg.y = canvasDims.height / 2 + 60;
+    buttonBg.interactive = true;
+    buttonBg.cursor = 'pointer';
+
+    const buttonText = new PIXI.Text('Back to Menu', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: 18,
+      fontWeight: 'bold',
+      fill: '#ffffff',
+      align: 'center'
+    });
+    buttonText.anchor.set(0.5);
+    buttonBg.addChild(buttonText);
+
+    buttonBg.on('pointerdown', () => {
+      // The backend already tore down the room/sessions before sending the
+      // message that led here (see GameManager.endGame) - there's nothing
+      // left to tell the server, this is purely local scene navigation.
+      // PixiApp and LobbyScene both already listen for this to switch back.
+      eventBus.emit('game.left');
+    });
+
+    overlay.addChild(buttonBg);
+    this.addChild(overlay);
+
+    // Animate
+    gsap.fromTo(messageText,
+      { alpha: 0, y: messageText.y - 20 },
+      { alpha: 1, y: messageText.y, duration: 0.5, ease: "power2.out" }
+    );
+    gsap.fromTo(buttonBg,
+      { alpha: 0 },
+      { alpha: 1, duration: 0.5, delay: 0.3 }
     );
   }
 

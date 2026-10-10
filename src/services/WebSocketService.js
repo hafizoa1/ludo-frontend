@@ -243,6 +243,24 @@ class WebSocketService {
         });
         break;
 
+      case 'LOBBY_EXPIRED':
+        console.log('Lobby expired - no one joined in time');
+        // GameResponse.error() puts the text in `error`, not `message` -
+        // this is sent as error() on the backend, so message is null here.
+        eventBus.emit('lobby.expired', {
+          message: response.message || response.error
+        });
+        break;
+
+      case 'GAME_ENDED_TIMEOUT':
+        console.log('Game ended by forfeit (timeout, disconnect, or opponent leaving)');
+        // Sent as success() to the winner (message) and error() to the
+        // forfeiting player (error) - read both so either side gets real text.
+        eventBus.emit('game.ended.forced', {
+          message: response.message || response.error
+        });
+        break;
+
       default:
         console.log('Unhandled personal response:', response.type);
         eventBus.emit('websocket.personal.response', response);

@@ -140,6 +140,16 @@ class LobbyScene extends Container { // Refactored inheritance
             this.showMainMenu();
         });
 
+        // No one joined within the server's join-timeout window - the room
+        // is already gone on the backend by the time this arrives, so this
+        // has to return to the menu rather than leave the player staring at
+        // a waiting room for a game that no longer exists.
+        eventBus.subscribe('lobby.expired', (data) => {
+            console.log('🏠 LobbyScene: Lobby expired,', data.message);
+            this.showError(data.message);
+            this.showMainMenu();
+        });
+
         // Game start event
         eventBus.subscribe('game.state.updated', (data) => {
             if (data.newState && data.newState.gameStatus === 'IN_PROGRESS') {
