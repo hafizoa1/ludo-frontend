@@ -87,6 +87,7 @@ class GameBoardContainer extends PIXI.Container {
     this.stateCoordinator.on('moves:available', (data) => {
       this.moveManager.resetProcessingState();
       this.moveManager.showAvailableMoves(data.moves);
+      this.pieces.setLegalPieces(data.legalPieceIds);
     });
 
     // Handle animation state changes
@@ -98,12 +99,14 @@ class GameBoardContainer extends PIXI.Container {
     this.stateCoordinator.on('turn:changed', (data) => {
       if (!data.isMyTurn) {
         this.moveManager.hideMoves();
+        this.pieces.clearLegalPieces();
       }
     });
 
     // Handle game end
     this.stateCoordinator.on('game:ended', () => {
       this.moveManager.hideMoves();
+      this.pieces.clearLegalPieces();
     });
   }
 

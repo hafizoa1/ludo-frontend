@@ -559,6 +559,45 @@ class PiecesContainer extends PIXI.Container {
   }
 
   /**
+   * Mark which pieces currently have a legal move - drives both the click
+   * handler and the glow (moveIndicator), already gated on piece.canMove.
+   */
+  setLegalPieces(legalPieceIds = []) {
+    this.pieces.forEach((piece, id) => {
+      const legal = legalPieceIds.includes(id);
+      if (piece.canMove === legal) return;
+
+      piece.canMove = legal;
+      this.updatePieceVisualState(piece);
+      this.showMoveIndicator(piece, legal);
+    });
+  }
+
+  clearLegalPieces() {
+    this.setLegalPieces([]);
+  }
+
+  /**
+   * Fade the piece's glow ring in/out
+   */
+  showMoveIndicator(piece, show) {
+    gsap.killTweensOf(piece.moveIndicator);
+
+    if (show) {
+      piece.moveIndicator.visible = true;
+      gsap.fromTo(piece.moveIndicator, { alpha: 0 }, { alpha: 1, duration: 0.3 });
+    } else {
+      gsap.to(piece.moveIndicator, {
+        alpha: 0,
+        duration: 0.2,
+        onComplete: () => {
+          piece.moveIndicator.visible = false;
+        }
+      });
+    }
+  }
+
+  /**
    * Get piece by ID
    */
   getPiece(pieceId) {

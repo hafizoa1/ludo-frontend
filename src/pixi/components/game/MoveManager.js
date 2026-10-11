@@ -16,7 +16,6 @@ class MoveManager extends PIXI.Container {
     // Move state
     this.currentMoves = [];
     this.movePanel = null;
-    this.highlightedPieces = new Set();
     this.isProcessingMove = false; // Prevent rapid-fire selections
 
     // NEW: Animation coordination
@@ -59,9 +58,6 @@ class MoveManager extends PIXI.Container {
     
     // Create move selection panel (rawMessage not needed anymore)
     this.createMovePanel(moves);
-    
-    // Highlight pieces that can move (future enhancement)
-    this.highlightMovablePieces(moves);
   }
 
   /**
@@ -383,6 +379,10 @@ class MoveManager extends PIXI.Container {
     // NEW: Hide menu immediately and set animation state
     this.hideMoves();
     this.isAnimating = true; // Expect animation to start
+
+    if (this.piecesContainer) {
+      this.piecesContainer.clearLegalPieces();
+    }
     
     // Visual feedback
     this.showMoveConfirmation(move);
@@ -468,15 +468,6 @@ class MoveManager extends PIXI.Container {
   }
 
   /**
-   * Highlight pieces that can move (future enhancement)
-   */
-  highlightMovablePieces(moves) {
-    // TODO: Parse move descriptions to identify piece IDs
-    // TODO: Add glow effects to movable pieces on board
-    console.log('MoveManager: Would highlight pieces for moves:', moves.length);
-  }
-
-  /**
    * Hide all move displays
    * FIXED: Manual control only - no auto-hide
    */
@@ -497,7 +488,6 @@ class MoveManager extends PIXI.Container {
       this.aplha = 0; 
     }
     
-    this.clearHighlights();
     this.isProcessingMove = false; // Reset processing state
   }
 
@@ -537,14 +527,6 @@ class MoveManager extends PIXI.Container {
   }
 
   /**
-   * Clear piece highlights
-   */
-  clearHighlights() {
-    this.highlightedPieces.clear();
-    // TODO: Remove glow effects from pieces
-  }
-
-  /**
    * Reset processing state (called when new moves arrive)
    */
   resetProcessingState() {
@@ -571,8 +553,7 @@ class MoveManager extends PIXI.Container {
     
     // Clear all components
     this.clearMovePanel();
-    this.clearHighlights();
-    
+
     // Reset state
     this.currentMoves = [];
     this.pendingMoves = null; // NEW: Clear pending moves

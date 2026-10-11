@@ -64,7 +64,11 @@ class StateCoordinator extends PIXI.Container {
 
     // Move options
     this.subscribe('moves.available', (data) => {
-      this.emit('moves:available', { moves: data.moves });
+      this.emit('moves:available', {
+        moves: data.moves,
+        legalPieceIds: data.legalPieceIds,
+        movesByPiece: data.movesByPiece
+      });
     });
 
     // Game state events
