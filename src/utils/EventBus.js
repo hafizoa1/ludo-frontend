@@ -15,7 +15,7 @@ class EventBus {
   /**
    * Emit an event to all subscribers
    * @param {string} event - Event name (e.g., 'dice.updated', 'pieces.moved')
-   * @param {any} data - Data to send to subscribers
+   * @param {any} [data] - Data to send to subscribers
    */
   emit(event, data) {
     if (this.debugMode) {

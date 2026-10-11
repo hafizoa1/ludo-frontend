@@ -1,11 +1,26 @@
-// src/services/GameService.js
+// src/services/GameService.ts
 
 import webSocketService from './WebSocketService';
 import eventBus from '../utils/EventBus';
+import {
+  GameResponse,
+  GameState,
+  MoveOptionState,
+  MovesByPiece,
+  PieceState,
+  UiMoveOption
+} from '../types/wire';
+
+interface PieceMovement {
+  pieceId: string;
+  color: string;
+  from: PieceState['position'];
+  to: PieceState['position'];
+}
 
 /**
  * GameService - Game state manager and diff calculator
- * 
+ *
  * Responsibilities:
  * - Store current game state (single source of truth)
  * - Calculate diffs between state changes
@@ -14,13 +29,17 @@ import eventBus from '../utils/EventBus';
  * - Provide action methods for UI components
  */
 class GameService {
+  currentState: GameState | null;
+  isConnected: boolean;
+  currentGameId: string | null;
+
   constructor() {
     this.currentState = null;
     this.isConnected = false;
     this.currentGameId = null;
-    
+
     this.initializeWebSocketListeners();
-    
+
     console.log('🎮 GameService initialized');
   }
 
@@ -28,9 +47,8 @@ class GameService {
   // EVENT LISTENER SETUP
   // =========================================================================
 
-  initializeWebSocketListeners() {
-    // Connection events
-    eventBus.subscribe('websocket.connected', (data) => {
+  initializeWebSocketListeners(): void {
+    eventBus.subscribe('websocket.connected', (data: { sessionId: string }) => {
       this.isConnected = true;
       console.log('🎮 GameService: WebSocket connected');
       eventBus.emit('game.connection.established', data);
@@ -44,33 +62,30 @@ class GameService {
       eventBus.emit('game.connection.lost');
     });
 
-    eventBus.subscribe('websocket.error', (data) => {
+    eventBus.subscribe('websocket.error', (data: unknown) => {
       console.error('🎮 GameService: WebSocket error', data);
       eventBus.emit('game.error', data);
     });
 
-    // Personal response events
-    eventBus.subscribe('websocket.personal.response', (response) => {
+    eventBus.subscribe('websocket.personal.response', (response: GameResponse) => {
       this.handlePersonalResponse(response);
     });
 
-    // Game events
-    eventBus.subscribe('game.event', (event) => {
+    eventBus.subscribe('game.event', (event: GameResponse) => {
       this.handleGameEvent(event);
     });
 
-    eventBus.subscribe('game.dice', (event) => {
+    eventBus.subscribe('game.dice', (event: GameResponse) => {
       this.handleDiceEvent(event);
     });
 
-    // Game lifecycle events
-    eventBus.subscribe('game.created', (data) => {
+    eventBus.subscribe('game.created', (data: { gameId: string; response: GameResponse }) => {
       this.currentGameId = data.gameId;
       console.log('🎮 GameService: Game created:', data.gameId);
       eventBus.emit('lobby.game.created', data);
     });
 
-    eventBus.subscribe('game.joined', (data) => {
+    eventBus.subscribe('game.joined', (data: { gameId: string; response: GameResponse }) => {
       this.currentGameId = data.gameId;
       console.log('🎮 GameService: Joined game:', data.gameId);
       eventBus.emit('lobby.game.joined', data);
@@ -84,14 +99,13 @@ class GameService {
   /**
    * Handle personal response messages
    */
-  handlePersonalResponse(response) {
+  handlePersonalResponse(response: GameResponse): void {
     console.log('🎮 GameService: Personal response:', response.type);
 
     if (response.success && response.data) {
       this.updateGameState(response.data);
     }
 
-    // Emit specific events based on response type
     switch (response.type) {
       case 'GAME_CREATED':
         eventBus.emit('lobby.response.game.created', response);
@@ -133,7 +147,7 @@ class GameService {
   /**
    * Handle game event messages
    */
-  handleGameEvent(event) {
+  handleGameEvent(event: GameResponse): void {
     console.log('🎮 GameService: Game event:', event.type);
 
     if (event.success && event.data) {
@@ -141,7 +155,6 @@ class GameService {
     }
 
     switch (event.type) {
-
       case 'GAME_MESSAGE':
         eventBus.emit('game.message', event);
         break;
@@ -153,22 +166,21 @@ class GameService {
   /**
    * Handle dice events
    */
-  handleDiceEvent(event) {
-  console.log('🎮 GameService: Dice event:', event.type);
-  
-  if (event.success && event.message) {
-    // Parse the concatenated dice roll string
-    const die1 = parseInt(event.message.charAt(0), 10);
-    const die2 = parseInt(event.message.charAt(1), 10);
+  handleDiceEvent(event: GameResponse): void {
+    console.log('🎮 GameService: Dice event:', event.type);
 
-    // Emit dice updated event with parsed values
-    eventBus.emit('dice.updated', { 
-      new: { 
-        die1: die1, 
-        die2: die2 
-      } 
-    });
-  }
+    if (event.success && event.message) {
+      // Parse the concatenated dice roll string
+      const die1 = parseInt(event.message.charAt(0), 10);
+      const die2 = parseInt(event.message.charAt(1), 10);
+
+      eventBus.emit('dice.updated', {
+        new: {
+          die1: die1,
+          die2: die2
+        }
+      });
+    }
   }
 
   // =========================================================================
@@ -178,7 +190,7 @@ class GameService {
   /**
    * Update shared game state and emit granular change events
    */
-  updateGameState(newState) {
+  updateGameState(newState: GameState): void {
     const oldState = this.currentState;
     this.currentState = newState;
 
@@ -188,10 +200,8 @@ class GameService {
       gameStatus: newState.gameStatus
     });
 
-    // Emit granular state change events
     this.emitStateChangeEvents(oldState, newState);
 
-    // Emit general state update
     eventBus.emit('game.state.updated', {
       oldState,
       newState,
@@ -202,10 +212,10 @@ class GameService {
   /**
    * Emit specific events for different types of state changes
    */
-  emitStateChangeEvents(oldState, newState) {
+  emitStateChangeEvents(oldState: GameState | null, newState: GameState): void {
     // Dice changes
-    if (!oldState || 
-        oldState.dice.die1 !== newState.dice.die1 || 
+    if (!oldState ||
+        oldState.dice.die1 !== newState.dice.die1 ||
         oldState.dice.die2 !== newState.dice.die2) {
       eventBus.emit('dice.updated', {
         old: oldState?.dice,
@@ -248,30 +258,20 @@ class GameService {
   /**
    * Calculate which pieces moved between states
    */
-  calculatePieceMovements(oldPieces, newPieces) {
-    const movements = [];
+  calculatePieceMovements(oldPieces: PieceState[], newPieces: PieceState[]): PieceMovement[] {
+    const movements: PieceMovement[] = [];
 
     newPieces.forEach(newPiece => {
       const oldPiece = oldPieces.find(p => p.id === newPiece.id);
-      
-      if (oldPiece && 
-          (oldPiece.position.row !== newPiece.position.row || 
+
+      if (oldPiece &&
+          (oldPiece.position.row !== newPiece.position.row ||
            oldPiece.position.col !== newPiece.position.col)) {
         movements.push({
           pieceId: newPiece.id,
           color: newPiece.color,
           from: oldPiece.position,
-          to: newPiece.position,
-          fromState: {
-            atHome: oldPiece.atHome,
-            inSafeZone: oldPiece.inSafeZone,
-            finished: oldPiece.finished
-          },
-          toState: {
-            atHome: newPiece.atHome,
-            inSafeZone: newPiece.inSafeZone,
-            finished: newPiece.finished
-          }
+          to: newPiece.position
         });
       }
     });
@@ -288,7 +288,7 @@ class GameService {
    * already consumes (MoveManager needs `number` + `description`; the rest
    * is carried through for future use, e.g. piece highlighting).
    */
-  mapAvailableMoves(availableMoves) {
+  mapAvailableMoves(availableMoves: MoveOptionState[]): UiMoveOption[] {
     return availableMoves.map((option) => ({
       number: option.index,
       description: option.description,
@@ -305,8 +305,8 @@ class GameService {
    * Groups moves by pieceId - which pieces have a legal move (Object.keys)
    * and each piece's own choices, for the board-first redesign.
    */
-  groupMovesByPiece(moves) {
-    const movesByPiece = {};
+  groupMovesByPiece(moves: UiMoveOption[]): MovesByPiece {
+    const movesByPiece: MovesByPiece = {};
     for (const move of moves) {
       if (!movesByPiece[move.pieceId]) {
         movesByPiece[move.pieceId] = [];
@@ -320,7 +320,7 @@ class GameService {
   // PUBLIC ACTION METHODS
   // =========================================================================
 
-  async connect() {
+  async connect(): Promise<boolean> {
     try {
       await webSocketService.connect();
       return true;
@@ -331,7 +331,7 @@ class GameService {
     }
   }
 
-  createGame() {
+  createGame(): void {
     if (!this.isConnected) {
       console.error('🎮 GameService: Cannot create game - not connected');
       eventBus.emit('game.error', { error: 'Not connected to server' });
@@ -342,7 +342,7 @@ class GameService {
     webSocketService.createGame();
   }
 
-  joinGame(gameId) {
+  joinGame(gameId: string): void {
     if (!this.isConnected) {
       console.error('🎮 GameService: Cannot join game - not connected');
       eventBus.emit('game.error', { error: 'Not connected to server' });
@@ -359,7 +359,7 @@ class GameService {
     webSocketService.joinGame(gameId);
   }
 
-  rollDice() {
+  rollDice(): void {
     if (!this.isConnected || !this.currentGameId) {
       console.error('🎮 GameService: Cannot roll dice - not in game');
       eventBus.emit('game.error', { error: 'Not in an active game' });
@@ -370,7 +370,7 @@ class GameService {
     webSocketService.rollDice();
   }
 
-  selectPiece(pieceIndex, capturedPieceId) {
+  selectPiece(pieceIndex: number, capturedPieceId?: string): void {
     if (!this.isConnected || !this.currentGameId) {
       console.error('🎮 GameService: Cannot select piece - not in game');
       eventBus.emit('game.error', { error: 'Not in an active game' });
@@ -387,7 +387,7 @@ class GameService {
     webSocketService.makeChoice(pieceIndex, capturedPieceId);
   }
 
-  requestGameState() {
+  requestGameState(): void {
     if (!this.isConnected || !this.currentGameId) {
       console.error('🎮 GameService: Cannot request state - not in game');
       return;
@@ -397,7 +397,7 @@ class GameService {
     webSocketService.getGameState();
   }
 
-  disconnect() {
+  disconnect(): void {
     console.log('🎮 GameService: Disconnecting...');
     webSocketService.disconnect();
     this.currentState = null;
@@ -409,35 +409,35 @@ class GameService {
   // GETTERS
   // =========================================================================
 
-  getCurrentState() {
+  getCurrentState(): GameState | null {
     return this.currentState;
   }
 
-  getCurrentGameId() {
+  getCurrentGameId(): string | null {
     return this.currentGameId;
   }
 
-  getConnectionStatus() {
+  getConnectionStatus(): { isConnected: boolean; gameId: string | null } {
     return {
       isConnected: this.isConnected,
       gameId: this.currentGameId
     };
   }
 
-  isMyTurn() {
+  isMyTurn(): boolean {
     if (!this.currentState) {
       return false;
     }
-    
+
     const mySessionId = webSocketService.getSessionId();
     return this.currentState.currentPlayerId === mySessionId;
   }
 
-  getAvailableMoves() {
+  getAvailableMoves(): MoveOptionState[] {
     return this.currentState?.availableMoves || [];
   }
 
-  isGameOver() {
+  isGameOver(): boolean {
     return this.currentState?.gameOver || false;
   }
 }
