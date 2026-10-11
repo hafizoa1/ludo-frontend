@@ -82,6 +82,21 @@ class WebSocketService {
           this.subscribeToPersonalQueue();
           eventBus.emit('websocket.connected', { sessionId: this.sessionId });
 
+          // Console hook for GameDebugController (@Profile("dev") only), localhost-only.
+          if (window.location.hostname === 'localhost') {
+            window.ludoDebug = {
+              setDice: (die1, die2) => this.send('/app/game.debug.setDice', { gameId: this.currentGameId, die1, die2 }),
+              stagePiece: (pieceId, pathPosition, row, col) => this.send('/app/game.debug.stagePiece', { gameId: this.currentGameId, pieceId, pathPosition, row, col }),
+              whereIs: (color, pathPosition) => this.send('/app/game.debug.whereIs', { color, pathPosition }),
+              getGameId: () => this.currentGameId,
+              createGame: () => import('./GameService').then(({ default: gs }) => gs.createGame()),
+              joinGame: (gameId) => import('./GameService').then(({ default: gs }) => gs.joinGame(gameId)),
+              rollDice: () => import('./GameService').then(({ default: gs }) => gs.rollDice()),
+              makeChoice: (choice) => import('./GameService').then(({ default: gs }) => gs.selectPiece(choice))
+            };
+            console.log('window.ludoDebug attached - see WebSocketService.js for the full list');
+          }
+
           resolve();
         },
 

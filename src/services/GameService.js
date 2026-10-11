@@ -112,8 +112,11 @@ class GameService {
           console.log('🎮 GameService: Delaying move options for animation');
           setTimeout(() => {
             console.log('🎮 GameService: Emitting move options after delay');
+            const movesByPiece = this.groupMovesByPiece(moveOptions);
             eventBus.emit('moves.available', {
               moves: moveOptions,
+              movesByPiece,
+              legalPieceIds: Object.keys(movesByPiece),
               rawMessage: response.message,
               timestamp: Date.now()
             });
@@ -292,8 +295,25 @@ class GameService {
       pieceId: option.pieceId,
       diceValue: option.diceValue,
       moveType: option.moveType,
-      targetPosition: option.targetPosition
+      targetPosition: option.targetPosition,
+      willCapture: option.willCapture,
+      capturablePieceIds: option.capturablePieceIds || []
     }));
+  }
+
+  /**
+   * Groups moves by pieceId - which pieces have a legal move (Object.keys)
+   * and each piece's own choices, for the board-first redesign.
+   */
+  groupMovesByPiece(moves) {
+    const movesByPiece = {};
+    for (const move of moves) {
+      if (!movesByPiece[move.pieceId]) {
+        movesByPiece[move.pieceId] = [];
+      }
+      movesByPiece[move.pieceId].push(move);
+    }
+    return movesByPiece;
   }
 
   // =========================================================================

@@ -50,19 +50,23 @@ describe('GameService - structured move/capture options', () => {
     const backendOptions = [
       {
         index: 1,
-        pieceId: 'red-0',
+        pieceId: 'R1',
         diceValue: 3,
-        moveType: 'CAPTURE',
-        targetPosition: { x: 5, y: 5 },
-        description: 'red-0: Capture this piece'
+        moveType: 'NORMAL',
+        targetPosition: { row: 1, col: 8 },
+        description: 'Red piece 1: Move 3 spaces (captures B1, B2) to (1, 8)',
+        willCapture: true,
+        capturablePieceIds: ['B1', 'B2']
       },
       {
         index: 2,
-        pieceId: 'red-1',
-        diceValue: 3,
-        moveType: 'CAPTURE',
-        targetPosition: { x: 5, y: 5 },
-        description: 'red-1: Capture this piece'
+        pieceId: 'R1',
+        diceValue: 6,
+        moveType: 'NORMAL',
+        targetPosition: { row: 4, col: 8 },
+        description: 'Red piece 1: Move 6 spaces to (4, 8)',
+        willCapture: false,
+        capturablePieceIds: []
       }
     ];
 
@@ -71,24 +75,50 @@ describe('GameService - structured move/capture options', () => {
     expect(mapped).toEqual([
       {
         number: 1,
-        description: 'red-0: Capture this piece',
-        pieceId: 'red-0',
+        description: 'Red piece 1: Move 3 spaces (captures B1, B2) to (1, 8)',
+        pieceId: 'R1',
         diceValue: 3,
-        moveType: 'CAPTURE',
-        targetPosition: { x: 5, y: 5 }
+        moveType: 'NORMAL',
+        targetPosition: { row: 1, col: 8 },
+        willCapture: true,
+        capturablePieceIds: ['B1', 'B2']
       },
       {
         number: 2,
-        description: 'red-1: Capture this piece',
-        pieceId: 'red-1',
-        diceValue: 3,
-        moveType: 'CAPTURE',
-        targetPosition: { x: 5, y: 5 }
+        description: 'Red piece 1: Move 6 spaces to (4, 8)',
+        pieceId: 'R1',
+        diceValue: 6,
+        moveType: 'NORMAL',
+        targetPosition: { row: 4, col: 8 },
+        willCapture: false,
+        capturablePieceIds: []
       }
     ]);
   });
 
-  test('MOVE_OPTIONS with structured availableMoves emits moves.available with mapped moves (multi-capture scenario)', () => {
+  test('mapAvailableMoves defaults capturablePieceIds to an empty array when the backend omits it', () => {
+    const mapped = gameService.mapAvailableMoves([
+      { index: 1, pieceId: 'R1', diceValue: 6, moveType: 'BRING_OUT', targetPosition: null, description: 'Bring out', willCapture: false }
+    ]);
+
+    expect(mapped[0].capturablePieceIds).toEqual([]);
+  });
+
+  test('groupMovesByPiece groups moves under each distinct pieceId', () => {
+    const moves = [
+      { number: 1, pieceId: 'R1', diceValue: 3 },
+      { number: 2, pieceId: 'R1', diceValue: 6 },
+      { number: 3, pieceId: 'R2', diceValue: 6 }
+    ];
+
+    const grouped = gameService.groupMovesByPiece(moves);
+
+    expect(Object.keys(grouped)).toEqual(['R1', 'R2']);
+    expect(grouped.R1).toHaveLength(2);
+    expect(grouped.R2).toHaveLength(1);
+  });
+
+  test('MOVE_OPTIONS with structured availableMoves emits moves.available with mapped moves, plus the per-piece grouping the board-first redesign needs', () => {
     const received = [];
     const unsubscribe = eventBus.subscribe('moves.available', (data) => {
       received.push(data);
@@ -97,11 +127,12 @@ describe('GameService - structured move/capture options', () => {
     const response = {
       type: 'MOVE_OPTIONS',
       success: true,
-      message: 'red-0 can capture multiple pieces:\n1. Capture red-0\n2. Capture red-1',
+      message: 'Available moves:\n1. Red piece 1: Move 3 spaces (captures B1, B2) to (1, 8)\n2. Red piece 1: Move 6 spaces to (4, 8)\n3. Red piece 2: Bring out of home (using 6) to (6, 1)',
       data: fakeGameState({
         availableMoves: [
-          { index: 1, pieceId: 'red-0', diceValue: 3, moveType: 'CAPTURE', targetPosition: null, description: 'Capture piece A' },
-          { index: 2, pieceId: 'red-1', diceValue: 3, moveType: 'CAPTURE', targetPosition: null, description: 'Capture piece B' }
+          { index: 1, pieceId: 'R1', diceValue: 3, moveType: 'NORMAL', targetPosition: { row: 1, col: 8 }, description: 'Red piece 1: Move 3 spaces (captures B1, B2) to (1, 8)', willCapture: true, capturablePieceIds: ['B1', 'B2'] },
+          { index: 2, pieceId: 'R1', diceValue: 6, moveType: 'NORMAL', targetPosition: { row: 4, col: 8 }, description: 'Red piece 1: Move 6 spaces to (4, 8)', willCapture: false, capturablePieceIds: [] },
+          { index: 3, pieceId: 'R2', diceValue: 6, moveType: 'BRING_OUT', targetPosition: { row: 6, col: 1 }, description: 'Red piece 2: Bring out of home (using 6) to (6, 1)', willCapture: false, capturablePieceIds: [] }
         ]
       })
     };
@@ -113,10 +144,17 @@ describe('GameService - structured move/capture options', () => {
     jest.advanceTimersByTime(1000);
 
     expect(received).toHaveLength(1);
-    expect(received[0].moves).toEqual([
-      { number: 1, description: 'Capture piece A', pieceId: 'red-0', diceValue: 3, moveType: 'CAPTURE', targetPosition: null },
-      { number: 2, description: 'Capture piece B', pieceId: 'red-1', diceValue: 3, moveType: 'CAPTURE', targetPosition: null }
-    ]);
+    const emitted = received[0];
+
+    expect(emitted.moves).toHaveLength(3);
+    expect(emitted.moves[0]).toMatchObject({ number: 1, pieceId: 'R1', willCapture: true, capturablePieceIds: ['B1', 'B2'] });
+
+    // The new, additive fields - which pieces should glow, and each one's
+    // own choices once tapped.
+    expect(emitted.legalPieceIds).toEqual(['R1', 'R2']);
+    expect(emitted.movesByPiece.R1).toHaveLength(2);
+    expect(emitted.movesByPiece.R2).toHaveLength(1);
+    expect(emitted.movesByPiece.R1[0].willCapture).toBe(true);
 
     unsubscribe();
   });
