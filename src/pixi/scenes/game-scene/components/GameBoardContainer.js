@@ -2,6 +2,7 @@ import * as PIXI from 'pixi.js';
 import BoardComponent from '../../../components/game/BoardComponent';
 import PiecesContainer from '../../../components/game/PiecesContainer';
 import MoveManager from '../../../components/game/MoveManager';
+import PieceMoveMenu from '../../../components/game/PieceMoveMenu';
 
 /**
  * GameBoardContainer - Encapsulates board, pieces, and move visualization
@@ -16,6 +17,9 @@ class GameBoardContainer extends PIXI.Container {
     this.board = null;
     this.pieces = null;
     this.moveManager = null;
+    this.pieceMoveMenu = null;
+    this.movesByPiece = {};
+    this.pendingCaptureMove = null;
     
     this.createComponents();
     this.setupEventListeners();
@@ -68,6 +72,11 @@ class GameBoardContainer extends PIXI.Container {
     });
     this.addChild(this.moveManager);
 
+    this.pieceMoveMenu = new PieceMoveMenu({
+      onSelect: (move) => this.chooseMove(move)
+    });
+    this.addChild(this.pieceMoveMenu);
+
     // Update board bounds for layout manager
     this.updateBoardBounds(boardLayout);
   }
@@ -83,11 +92,38 @@ class GameBoardContainer extends PIXI.Container {
       });
     });
 
-    // Handle move options
+    // Handle move options - pieces glow directly, no fixed panel (see
+    // docs/move-selection-redesign.md)
     this.stateCoordinator.on('moves:available', (data) => {
-      this.moveManager.resetProcessingState();
-      this.moveManager.showAvailableMoves(data.moves);
       this.pieces.setLegalPieces(data.legalPieceIds);
+      this.movesByPiece = data.movesByPiece || {};
+    });
+
+    // A tapped piece with exactly one legal move submits it directly. One
+    // with more than one (two dice values, or bring-out vs normal) opens a
+    // small menu anchored to that piece instead of a global list.
+    this.stateCoordinator.on('piece:selected', (data) => {
+      const moves = this.movesByPiece[data.pieceId];
+      if (!moves || moves.length === 0) return;
+
+      if (moves.length === 1) {
+        this.chooseMove(moves[0]);
+        return;
+      }
+
+      const piece = this.pieces.getPiece(data.pieceId);
+      this.pieceMoveMenu.show(moves, piece.x + this.pieces.x, piece.y + this.pieces.y);
+      this.pieces.showCaptureHighlights(this.unionCapturablePieceIds(moves));
+    });
+
+    // Resolves a capturing move with more than one candidate once the
+    // player taps the specific enemy piece on the board.
+    this.stateCoordinator.on('capture:target:selected', (data) => {
+      if (!this.pendingCaptureMove) return;
+      const move = this.pendingCaptureMove;
+      this.pendingCaptureMove = null;
+      this.pieces.clearCaptureTargets();
+      this.submitMove(move, data.pieceId);
     });
 
     // Handle animation state changes
@@ -98,16 +134,55 @@ class GameBoardContainer extends PIXI.Container {
     // Handle turn changes
     this.stateCoordinator.on('turn:changed', (data) => {
       if (!data.isMyTurn) {
-        this.moveManager.hideMoves();
-        this.pieces.clearLegalPieces();
+        this.resetMoveSelection();
       }
     });
 
     // Handle game end
     this.stateCoordinator.on('game:ended', () => {
-      this.moveManager.hideMoves();
-      this.pieces.clearLegalPieces();
+      this.resetMoveSelection();
     });
+  }
+
+  /**
+   * A move with exactly one capturable target resolves it automatically
+   * (the backend would anyway - see MoveExecutor.checkForCaptures); more
+   * than one needs the player to tap the specific piece on the board.
+   */
+  chooseMove(move) {
+    if (move.willCapture && move.capturablePieceIds?.length > 1) {
+      this.beginCaptureTargetSelection(move);
+      return;
+    }
+    this.submitMove(move, move.capturablePieceIds?.[0]);
+  }
+
+  beginCaptureTargetSelection(move) {
+    this.pendingCaptureMove = move;
+    this.pieceMoveMenu.hide();
+    this.pieces.setCaptureTargets(move.capturablePieceIds);
+  }
+
+  submitMove(move, capturedPieceId) {
+    this.pieceMoveMenu.hide();
+    this.pieces.clearCaptureHighlights();
+    this.pieces.clearLegalPieces();
+    this.stateCoordinator.selectPiece(move.number, capturedPieceId);
+  }
+
+  unionCapturablePieceIds(moves) {
+    const ids = new Set();
+    moves.forEach((move) => (move.capturablePieceIds || []).forEach((id) => ids.add(id)));
+    return Array.from(ids);
+  }
+
+  resetMoveSelection() {
+    this.pieceMoveMenu.hide();
+    this.pieces.clearLegalPieces();
+    this.pieces.clearCaptureHighlights();
+    this.pieces.clearCaptureTargets();
+    this.movesByPiece = {};
+    this.pendingCaptureMove = null;
   }
 
   /**
@@ -157,6 +232,7 @@ class GameBoardContainer extends PIXI.Container {
     if (this.board) this.board.destroy();
     if (this.pieces) this.pieces.destroy();
     if (this.moveManager) this.moveManager.destroy();
+    if (this.pieceMoveMenu) this.pieceMoveMenu.destroy();
     super.destroy(options);
   }
 }

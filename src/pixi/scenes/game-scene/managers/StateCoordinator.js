@@ -71,6 +71,14 @@ class StateCoordinator extends PIXI.Container {
       });
     });
 
+    this.subscribe('game.piece.selected', (data) => {
+      this.emit('piece:selected', data);
+    });
+
+    this.subscribe('game.capture.target.selected', (data) => {
+      this.emit('capture:target:selected', data);
+    });
+
     // Game state events
     this.subscribe('game.state.updated', (data) => {
       this.emit('state:updated', { newState: data.newState });
@@ -134,8 +142,8 @@ class StateCoordinator extends PIXI.Container {
   /**
    * Select a piece
    */
-  selectPiece(pieceIndex) {
-    gameService.selectPiece(pieceIndex);
+  selectPiece(pieceIndex, capturedPieceId) {
+    gameService.selectPiece(pieceIndex, capturedPieceId);
   }
 
   /**

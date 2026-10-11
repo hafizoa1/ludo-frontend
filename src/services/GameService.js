@@ -370,7 +370,7 @@ class GameService {
     webSocketService.rollDice();
   }
 
-  selectPiece(pieceIndex) {
+  selectPiece(pieceIndex, capturedPieceId) {
     if (!this.isConnected || !this.currentGameId) {
       console.error('🎮 GameService: Cannot select piece - not in game');
       eventBus.emit('game.error', { error: 'Not in an active game' });
@@ -384,7 +384,7 @@ class GameService {
     }
 
     console.log('🎮 GameService: Selecting piece:', pieceIndex);
-    webSocketService.makeChoice(pieceIndex);
+    webSocketService.makeChoice(pieceIndex, capturedPieceId);
   }
 
   requestGameState() {

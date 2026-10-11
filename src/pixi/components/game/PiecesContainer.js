@@ -75,6 +75,7 @@ class PiecesContainer extends PIXI.Container {
   piece.isInHome = true;
   piece.isSelected = false;
   piece.canMove = false;
+  piece.captureTarget = false;
 
   this.createPieceVisual(piece, color);
   this.positionPiece(piece, gridPosition);
@@ -126,6 +127,13 @@ class PiecesContainer extends PIXI.Container {
     moveIndicator.visible = false;
     moveIndicator.name = 'moveIndicator';
 
+    // "Would be captured" / "tap to capture" ring (hidden initially)
+    const captureWarning = new PIXI.Graphics();
+    captureWarning.circle(0, 0, pieceSize * 1.5);
+    captureWarning.stroke({ color: 0xff4444, width: 3 });
+    captureWarning.visible = false;
+    captureWarning.name = 'captureWarning';
+
     // Tooltip for piece ID (hidden initially)
     const tooltip = this.createTooltip(piece.id, pieceSize);
     tooltip.visible = false;
@@ -135,6 +143,7 @@ class PiecesContainer extends PIXI.Container {
     piece.addChild(shadow);
     piece.addChild(selectionRing);
     piece.addChild(moveIndicator);
+    piece.addChild(captureWarning);
     piece.addChild(body);
     piece.addChild(highlight);
     piece.addChild(tooltip);
@@ -145,6 +154,7 @@ class PiecesContainer extends PIXI.Container {
     piece.shadow = shadow;
     piece.selectionRing = selectionRing;
     piece.moveIndicator = moveIndicator;
+    piece.captureWarning = captureWarning;
     piece.tooltip = tooltip;
   }
 
@@ -200,7 +210,7 @@ class PiecesContainer extends PIXI.Container {
       // Always show tooltip on hover
       this.showPieceTooltip(piece);
 
-      if (piece.canMove) {
+      if (piece.canMove || piece.captureTarget) {
         this.showPieceHover(piece);
       }
     });
@@ -214,6 +224,10 @@ class PiecesContainer extends PIXI.Container {
 
     // Click handler
     piece.on('pointerdown', () => {
+      if (piece.captureTarget) {
+        this.handleCaptureTargetClick(piece);
+        return;
+      }
       if (piece.canMove) {
         this.handlePieceClick(piece);
       }
@@ -291,6 +305,15 @@ class PiecesContainer extends PIXI.Container {
         }
       });
     }
+  }
+
+  /**
+   * A tap on an enemy piece currently marked as a capture target -
+   * resolves which piece to capture when a move has more than one.
+   */
+  handleCaptureTargetClick(piece) {
+    console.log('🔴 Capture target clicked:', piece.id);
+    eventBus.emit('game.capture.target.selected', { pieceId: piece.id });
   }
 
   /**
@@ -542,6 +565,27 @@ class PiecesContainer extends PIXI.Container {
   }
 
   /**
+   * Clear visual selection from every piece
+   */
+  deselectAllPieces() {
+    this.pieces.forEach((piece) => {
+      if (!piece.isSelected) return;
+
+      piece.isSelected = false;
+      gsap.killTweensOf(piece.selectionRing);
+      piece.selectionRing.visible = false;
+
+      gsap.killTweensOf(piece.scale);
+      gsap.to(piece.scale, {
+        x: 1,
+        y: 1,
+        duration: 0.2,
+        ease: "power2.out"
+      });
+    });
+  }
+
+  /**
    * Update piece visual state based on current data
    */
   updatePieceVisualState(piece) {
@@ -553,9 +597,9 @@ class PiecesContainer extends PIXI.Container {
     });
 
     // FIXED: Keep interactive always true for tooltip to work
-    // Only the click handler checks piece.canMove
+    // Only the click handler checks piece.canMove / piece.captureTarget
     piece.interactive = true;
-    piece.buttonMode = piece.canMove; // Cursor only changes when movable
+    piece.buttonMode = piece.canMove || piece.captureTarget;
   }
 
   /**
@@ -575,6 +619,7 @@ class PiecesContainer extends PIXI.Container {
 
   clearLegalPieces() {
     this.setLegalPieces([]);
+    this.deselectAllPieces();
   }
 
   /**
@@ -592,6 +637,54 @@ class PiecesContainer extends PIXI.Container {
         duration: 0.2,
         onComplete: () => {
           piece.moveIndicator.visible = false;
+        }
+      });
+    }
+  }
+
+  /**
+   * Preview-only "would be captured" ring, shown for every piece any of
+   * the currently-considered moves could capture - not clickable yet.
+   */
+  showCaptureHighlights(capturablePieceIds = []) {
+    this.pieces.forEach((piece, id) => {
+      this.toggleCaptureWarning(piece, capturablePieceIds.includes(id));
+    });
+  }
+
+  clearCaptureHighlights() {
+    this.showCaptureHighlights([]);
+  }
+
+  /**
+   * Active "tap to capture" state - used once a capturing move with more
+   * than one candidate has actually been chosen and needs disambiguating.
+   */
+  setCaptureTargets(capturablePieceIds = []) {
+    this.pieces.forEach((piece, id) => {
+      const isTarget = capturablePieceIds.includes(id);
+      piece.captureTarget = isTarget;
+      this.toggleCaptureWarning(piece, isTarget);
+      this.updatePieceVisualState(piece);
+    });
+  }
+
+  clearCaptureTargets() {
+    this.setCaptureTargets([]);
+  }
+
+  toggleCaptureWarning(piece, show) {
+    gsap.killTweensOf(piece.captureWarning);
+
+    if (show) {
+      piece.captureWarning.visible = true;
+      gsap.fromTo(piece.captureWarning, { alpha: 0 }, { alpha: 1, duration: 0.2 });
+    } else {
+      gsap.to(piece.captureWarning, {
+        alpha: 0,
+        duration: 0.15,
+        onComplete: () => {
+          piece.captureWarning.visible = false;
         }
       });
     }
@@ -619,7 +712,7 @@ class PiecesContainer extends PIXI.Container {
     
     // Kill all animations
     this.pieces.forEach(piece => {
-      gsap.killTweensOf([piece, piece.scale, piece.moveIndicator, piece.selectionRing]);
+      gsap.killTweensOf([piece, piece.scale, piece.moveIndicator, piece.selectionRing, piece.captureWarning]);
     });
     
     this.pieces.clear();

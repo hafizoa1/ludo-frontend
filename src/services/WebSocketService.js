@@ -405,12 +405,8 @@ class WebSocketService {
     this.send('/app/game.roll');
   }
 
-  sendChoice(choice) {
-    this.send('/app/game.choice', { choice });
-  }
-
-  makeChoice(choice) {
-    this.send('/app/game.choice', { choice });
+  makeChoice(choice, capturedPieceId) {
+    this.send('/app/game.choice', capturedPieceId ? { choice, capturedPieceId } : { choice });
   }
 
   getGameState() {
