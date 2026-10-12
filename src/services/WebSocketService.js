@@ -241,7 +241,7 @@ class WebSocketService {
 
       case 'INVALID_CHOICE':
         eventBus.emit('game.error', {
-          message: response.message || 'Invalid choice',
+          error: response.message || 'Invalid choice',
           type: 'INVALID_CHOICE'
         });
         break;
@@ -253,7 +253,7 @@ class WebSocketService {
         // GAME_ENDED_TIMEOUT used to.
         console.error('Server error:', response.message || response.error);
         eventBus.emit('game.error', {
-          message: response.message || response.error || 'An unexpected error occurred',
+          error: response.message || response.error || 'An unexpected error occurred',
           type: 'SERVER_ERROR'
         });
         break;
