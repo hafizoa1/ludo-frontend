@@ -38,7 +38,6 @@ export interface EventMap {
   'game.message': GameResponse;
   'game.input.required': GameResponse;
   'game.response': GameResponse;
-  'game.started': { message?: string; gameState: GameState | null };
   'game.left': { message?: string };
   'game.ended.forced': { message?: string };
 

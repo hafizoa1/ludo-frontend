@@ -1,9 +1,27 @@
-// src/services/WebSocketService.js
+// src/services/WebSocketService.ts
 
 import SockJS from 'sockjs-client';
-import { Client } from '@stomp/stompjs';
+import { Client, StompSubscription } from '@stomp/stompjs';
 import eventBus from '../utils/EventBus';
 import PlayerIdentity from '../utils/PlayerIdentity';
+import { GameResponse } from '../types/wire';
+
+declare global {
+  interface Window {
+    // Console hook for GameDebugController (@Profile("dev") only, localhost
+    // only) - see onConnect below for where this gets attached.
+    ludoDebug?: {
+      setDice: (die1: number, die2: number) => void;
+      stagePiece: (pieceId: string, pathPosition: number, row?: number, col?: number) => void;
+      whereIs: (color: string, pathPosition: number) => void;
+      getGameId: () => string | null;
+      createGame: () => Promise<void>;
+      joinGame: (gameId: string) => Promise<void>;
+      rollDice: () => Promise<void>;
+      makeChoice: (choice: number) => Promise<void>;
+    };
+  }
+}
 
 /**
  * WebSocketService - Pure STOMP communication layer
@@ -20,15 +38,20 @@ import PlayerIdentity from '../utils/PlayerIdentity';
  * - Parse move options (GameService does this)
  */
 class WebSocketService {
+  stompClient: Client | null;
+  connected: boolean;
+  connecting: boolean;
+  sessionId: string;
+  currentGameId: string | null;
+  subscriptions: Map<string, StompSubscription>;
+
   constructor() {
     this.stompClient = null;
     this.connected = false;
     this.connecting = false;
-    this.sessionId = null;
     this.currentGameId = null;
     this.subscriptions = new Map();
 
-    // Generate session ID
     this.sessionId = 'user-' + Math.floor(Math.random() * 10000);
     console.log('WebSocketService created with sessionId:', this.sessionId);
   }
@@ -37,7 +60,7 @@ class WebSocketService {
   // CONNECTION MANAGEMENT
   // =========================================================================
 
-  connect() {
+  connect(): Promise<void> {
     if (this.connected || this.connecting) {
       console.log('Already connected or connecting');
       return Promise.resolve();
@@ -50,7 +73,7 @@ class WebSocketService {
       this.connecting = true;
 
       this.stompClient = new Client({
-        webSocketFactory: () => new SockJS(process.env.REACT_APP_WS_URL),
+        webSocketFactory: () => new SockJS(process.env.REACT_APP_WS_URL as string) as any,
         connectHeaders: {
           login: this.sessionId
         },
@@ -72,9 +95,8 @@ class WebSocketService {
         heartbeatIncoming: 10000,
         heartbeatOutgoing: 10000,
 
-        onConnect: (frame) => {
+        onConnect: () => {
           console.log('Connected to STOMP');
-          console.log('Session ID:', frame.headers['user-name'] || this.sessionId);
 
           this.connected = true;
           this.connecting = false;
@@ -137,7 +159,7 @@ class WebSocketService {
     });
   }
 
-  disconnect() {
+  disconnect(): void {
     if (this.stompClient && this.connected) {
       console.log('Disconnecting from STOMP...');
 
@@ -162,27 +184,24 @@ class WebSocketService {
    * Subscribe to personal response queue
    * Receives: GAME_CREATED, JOINED_GAME, YOUR_TURN, MOVE_OPTIONS, INPUT_REQUIRED, INVALID_CHOICE
    */
-  subscribeToPersonalQueue() {
-    const subscription = this.stompClient.subscribe('/user/queue/response', (message) => {
-      const response = JSON.parse(message.body);
-      //console.log('Personal Response:', response.type, '-', response.message);
-
+  subscribeToPersonalQueue(): void {
+    const subscription = this.stompClient!.subscribe('/user/queue/response', (message) => {
+      const response: GameResponse = JSON.parse(message.body);
       this.handlePersonalResponse(response);
     });
 
     this.subscriptions.set('personal.queue', subscription);
-    //console.log('Subscribed to personal queue');
   }
 
   /**
    * Subscribe to game broadcast events
    * Receives: GAME_STARTED, GAME_STATE_UPDATE, GAME_MESSAGE
    */
-  subscribeToGameEvents(gameId) {
+  subscribeToGameEvents(gameId: string): void {
     console.log('Subscribing to game events for:', gameId);
 
-    const eventsSubscription = this.stompClient.subscribe(`/topic/game/${gameId}/events`, (message) => {
-      const event = JSON.parse(message.body);
+    const eventsSubscription = this.stompClient!.subscribe(`/topic/game/${gameId}/events`, (message) => {
+      const event: GameResponse = JSON.parse(message.body);
       console.log('Broadcast Event:', event.type, '-', event.message);
 
       this.handleBroadcastEvent(event);
@@ -199,7 +218,7 @@ class WebSocketService {
   /**
    * Handle personal queue messages (sent to specific player)
    */
-  handlePersonalResponse(response) {
+  handlePersonalResponse(response: GameResponse): void {
     console.log('Processing personal response:', response.type);
 
     switch (response.type) {
@@ -297,18 +316,16 @@ class WebSocketService {
   /**
    * Handle broadcast messages (sent to all players in game)
    */
-  handleBroadcastEvent(event) {
+  handleBroadcastEvent(event: GameResponse): void {
     console.log('Processing broadcast event:', event.type);
 
     switch (event.type) {
       case 'GAME_STARTED':
         console.log('Game has started');
-        eventBus.emit('game.started', {
-          message: event.message,
-          gameState: event.data
-        });
 
-        // Also emit state update for GameService to process
+        // Scene-transition logic (PixiApp/LobbyScene) subscribes to
+        // game.state.updated below, not a dedicated game.started event -
+        // there was never a consumer for one.
         if (event.data) {
           eventBus.emit('game.state.updated', {
             newState: event.data,
@@ -339,7 +356,7 @@ class WebSocketService {
   /**
    * Handle game creation
    */
-  handleGameCreated(response) {
+  handleGameCreated(response: GameResponse): void {
     const gameId = this.extractGameId(response.message);
     if (gameId) {
       this.currentGameId = gameId;
@@ -354,7 +371,7 @@ class WebSocketService {
   /**
    * Handle joining game
    */
-  handleJoinedGame(response) {
+  handleJoinedGame(response: GameResponse): void {
     if (this.currentGameId) {
       console.log('Joined game, subscribing to:', this.currentGameId);
       this.subscribeToGameEvents(this.currentGameId);
@@ -367,8 +384,8 @@ class WebSocketService {
   /**
    * Extract game ID from message string
    */
-  extractGameId(message) {
-    const match = message.match(/Game (\w+) created/);
+  extractGameId(message?: string): string | null {
+    const match = message?.match(/Game (\w+) created/);
     return match ? match[1] : null;
   }
 
@@ -376,7 +393,7 @@ class WebSocketService {
   // OUTGOING MESSAGES
   // =========================================================================
 
-  send(destination, payload = {}) {
+  send(destination: string, payload: Record<string, unknown> = {}): void {
     if (!this.connected) {
       console.error('Cannot send message - not connected');
       eventBus.emit('websocket.error', { error: 'Not connected' });
@@ -384,36 +401,36 @@ class WebSocketService {
     }
 
     console.log(`Sending to ${destination}:`, payload);
-    this.stompClient.publish({
+    this.stompClient!.publish({
       destination: destination,
       body: JSON.stringify(payload)
     });
   }
 
-  createGame() {
+  createGame(): void {
     const playerId = PlayerIdentity.getPlayerId();
     this.send('/app/game.create', { playerId });
   }
 
-  joinGame(gameId) {
+  joinGame(gameId: string): void {
     this.currentGameId = gameId;
     const playerId = PlayerIdentity.getPlayerId();
     this.send('/app/game.join', { gameId, playerId });
   }
 
-  rollDice() {
+  rollDice(): void {
     this.send('/app/game.roll');
   }
 
-  makeChoice(choice, capturedPieceId) {
+  makeChoice(choice: number, capturedPieceId?: string): void {
     this.send('/app/game.choice', capturedPieceId ? { choice, capturedPieceId } : { choice });
   }
 
-  getGameState() {
+  getGameState(): void {
     this.send('/app/game.state');
   }
 
-  leaveGame() {
+  leaveGame(): void {
     this.send('/app/game.leave');
   }
 
@@ -421,15 +438,15 @@ class WebSocketService {
   // GETTERS
   // =========================================================================
 
-  isConnected() {
+  isConnected(): boolean {
     return this.connected;
   }
 
-  getCurrentGameId() {
+  getCurrentGameId(): string | null {
     return this.currentGameId;
   }
 
-  getSessionId() {
+  getSessionId(): string {
     return this.sessionId;
   }
 }
