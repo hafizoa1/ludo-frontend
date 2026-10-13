@@ -18,7 +18,7 @@ declare global {
       createGame: () => Promise<void>;
       joinGame: (gameId: string) => Promise<void>;
       rollDice: () => Promise<void>;
-      makeChoice: (choice: number) => Promise<void>;
+      makeChoice: (choice: number, capturedPieceId?: string) => Promise<void>;
     };
   }
 }
@@ -114,7 +114,7 @@ class WebSocketService {
               createGame: () => import('./GameService').then(({ default: gs }) => gs.createGame()),
               joinGame: (gameId) => import('./GameService').then(({ default: gs }) => gs.joinGame(gameId)),
               rollDice: () => import('./GameService').then(({ default: gs }) => gs.rollDice()),
-              makeChoice: (choice) => import('./GameService').then(({ default: gs }) => gs.selectPiece(choice))
+              makeChoice: (choice, capturedPieceId) => import('./GameService').then(({ default: gs }) => gs.selectPiece(choice, capturedPieceId))
             };
             console.log('window.ludoDebug attached - see WebSocketService.js for the full list');
           }

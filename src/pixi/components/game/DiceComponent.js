@@ -1,7 +1,7 @@
 import * as PIXI from 'pixi.js';
 import { gsap } from 'gsap';
 import eventBus from '../../../utils/EventBus';
-import { color, type, fontFamily } from '../../design/tokens';
+import { color, type, motion, fontFamily } from '../../design/tokens';
 
 /**
  * DiceComponent - Clean, fast, and user-friendly dual dice
@@ -205,88 +205,128 @@ class DiceComponent extends PIXI.Container {
 
   handleRollClick() {
     console.log('🎲 Dice roll requested');
+
+    // A quick press-down cue for the tap itself - previously nothing
+    // acknowledged the click before the much bigger roll timeline took
+    // over, unlike every other interactive element (Button.js's own
+    // press state).
+    gsap.to([this.dice1.scale, this.dice2.scale], {
+      x: 0.95,
+      y: 0.95,
+      duration: motion.settle.duration,
+      ease: motion.settle.ease,
+      yoyo: true,
+      repeat: 1
+    });
+
     eventBus.emit('game.dice.roll.request');
     this.startRollingAnimation();
   }
 
   /**
-   * Fast, satisfying roll animation - no physics overhead
+   * Fast, satisfying roll animation - no physics overhead. Every phase's
+   * timing derives from this.rollDuration now - it used to be hardcoded
+   * absolute offsets (0.3s / 1.2s / 1.3s) that happened to roughly add up
+   * to the *default* rollDuration (1500ms) but didn't actually scale with
+   * it, so the constructor's own rollDuration option never really worked.
    */
   startRollingAnimation() {
     if (this.isRolling) return;
-    
+
     this.isRolling = true;
     this.enabled = false;
-    
+
     // Hide UI during roll
     gsap.to([this.rollButton, this.totalDisplay], { alpha: 0, duration: 0.2 });
-    
+
+    const totalDuration = this.rollDuration / 1000; // seconds
+    const anticipationDuration = 0.15; // stays short regardless of total length
+    const settleDuration = 0.1;
+    const rotationStart = anticipationDuration * 2;
+    const rotationDuration = Math.max(0.3, totalDuration - rotationStart - settleDuration * 2);
+    const bounceUpStart = rotationStart + rotationDuration;
+    const bounceDownStart = bounceUpStart + settleDuration;
+
     // Create satisfying roll sequence
     this.rollAnimation = gsap.timeline({
       onComplete: () => {
         this.finishRoll();
       }
     });
-    
-    // Phase 1: Anticipation bounce (0.3s)
+
+    // Phase 1: Anticipation bounce
     this.rollAnimation.to([this.dice1, this.dice2], {
       y: "-=15",
-      duration: 0.15,
+      duration: anticipationDuration,
       ease: "power2.out"
     });
-    
+
     this.rollAnimation.to([this.dice1, this.dice2], {
       y: "+=15",
-      duration: 0.15,
+      duration: anticipationDuration,
       ease: "power2.in"
     });
-    
-    // Phase 2: Rolling with random values (1s)
+
+    // Phase 2: Rolling with random values, for exactly as long as the rotation below
     this.rollAnimation.call(() => {
-      this.showRandomValues();
+      this.showRandomValues(rotationDuration);
     });
-    
-    // Phase 3: Settling animation (0.2s)
+
+    // Phase 3: Settling animation
     this.rollAnimation.to([this.dice1.diceBody, this.dice2.diceBody], {
       rotation: "+=6.28", // Full rotation
-      duration: 1,
+      duration: rotationDuration,
       ease: "power2.out"
-    }, 0.3);
-    
+    }, rotationStart);
+
     this.rollAnimation.to([this.dice1, this.dice2], {
       y: "-=8",
-      duration: 0.1,
+      duration: settleDuration,
       ease: "power2.out"
-    }, 1.2);
-    
+    }, bounceUpStart);
+
     this.rollAnimation.to([this.dice1, this.dice2], {
       y: "+=8",
-      duration: 0.1,
-      ease: "bounce.out"
-    }, 1.3);
+      duration: settleDuration,
+      ease: motion.impact.ease
+    }, bounceDownStart);
   }
 
-  showRandomValues() {
-    let changeCount = 0;
-    const maxChanges = 8;
-    
-    const randomInterval = setInterval(() => {
-      if (!this.isRolling || changeCount >= maxChanges) {
-        clearInterval(randomInterval);
-        return;
-      }
-      
-      const random1 = Math.floor(Math.random() * 6) + 1;
-      const random2 = Math.floor(Math.random() * 6) + 1;
-      
-      this.updateDiceFace(this.dice1.diceFace, random1);
-      this.updateDiceFace(this.dice2.diceFace, random2);
-      
-      changeCount++;
-    }, 100);
+  /**
+   * Flicker random faces for `duration` seconds. Was a raw setInterval -
+   * a second animation mechanism alongside gsap, un-killed by destroy()'s
+   * gsap.killTweensOf (nothing there targeted it). Now a real gsap tween,
+   * so destroy() actually stops it.
+   */
+  showRandomValues(duration) {
+    const changeInterval = 0.1;
+    const changes = Math.max(1, Math.floor(duration / changeInterval));
+
+    if (this.randomValuesTween) this.randomValuesTween.kill();
+
+    this.randomValuesTween = gsap.to({}, {
+      duration: 0.001,
+      repeat: changes - 1,
+      repeatDelay: changeInterval,
+      onStart: () => this.randomizeDiceFaces(),
+      onRepeat: () => this.randomizeDiceFaces()
+    });
+  }
+
+  randomizeDiceFaces() {
+    const random1 = Math.floor(Math.random() * 6) + 1;
+    const random2 = Math.floor(Math.random() * 6) + 1;
+
+    this.updateDiceFace(this.dice1.diceFace, random1);
+    this.updateDiceFace(this.dice2.diceFace, random2);
   }
 
   finishRoll() {
+    if (this.randomValuesTween) {
+      this.randomValuesTween.kill();
+      this.randomValuesTween = null;
+    }
+
     // Show final values (use predetermined values if set)
     const finalValues = this.targetValues || {
       die1: Math.floor(Math.random() * 6) + 1,
@@ -480,7 +520,10 @@ class DiceComponent extends PIXI.Container {
     if (this.idleAnimation) {
       this.idleAnimation.kill();
     }
-    
+    if (this.randomValuesTween) {
+      this.randomValuesTween.kill();
+    }
+
     gsap.killTweensOf([this, this.dice1, this.dice2]);
     super.destroy();
   }

@@ -158,7 +158,7 @@ class Button extends PIXI.Container {
       gsap.to(this.scale, {
         x: 1,
         y: 1,
-        duration: 0.15,
+        duration: motion.impact.duration,
         ease: motion.pop.ease
       });
 

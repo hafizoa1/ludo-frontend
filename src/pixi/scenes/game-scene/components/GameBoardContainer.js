@@ -72,7 +72,7 @@ class GameBoardContainer extends PIXI.Container {
     // Handle piece movements
     this.stateCoordinator.on('pieces:moved', (data) => {
       data.movements.forEach(movement => {
-        this.pieces.movePiece(movement.pieceId, movement.from, movement.to);
+        this.pieces.movePiece(movement.pieceId, movement.from, movement.to, movement.returnedHome);
       });
     });
 

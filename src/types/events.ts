@@ -13,6 +13,7 @@ interface PieceMovement {
   color: string;
   from: Position;
   to: Position;
+  returnedHome: boolean;
 }
 
 export interface EventMap {

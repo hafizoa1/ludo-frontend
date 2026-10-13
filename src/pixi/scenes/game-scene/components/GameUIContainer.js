@@ -2,7 +2,7 @@ import * as PIXI from 'pixi.js';
 import { gsap } from 'gsap';
 import { LAYOUT_CONFIG } from '../config/layout.config';
 import eventBus from '../../../../utils/EventBus';
-import { color, type, fontFamily } from '../../../design/tokens';
+import { color, type, motion, fontFamily } from '../../../design/tokens';
 
 /**
  * GameUIContainer - Manages UI overlays, messages, and game over screen
@@ -167,14 +167,16 @@ class GameUIContainer extends PIXI.Container {
     overlay.addChild(winText);
     this.addChild(overlay);
     
-    // Animate
+    // Animate. Was bounce.out - reads more cartoon/toy than the rest of
+    // the app's "pop" language (Button releases, piece selection, menu
+    // open). One major-screen-arrival feel instead of two.
     gsap.fromTo(winText,
       { scale: 0, rotation: -Math.PI },
       {
         scale: 1,
         rotation: 0,
         duration: 1,
-        ease: "bounce.out"
+        ease: motion.pop.ease
       }
     );
   }

@@ -16,6 +16,13 @@ interface PieceMovement {
   color: string;
   from: PieceState['position'];
   to: PieceState['position'];
+  // Specifically "was not at home, now is" - the signal a capture
+  // actually happened to this piece (sent back to start), not a normal
+  // forward move. Deliberately narrow and named for its one real
+  // consumer (PiecesContainer's capture animation), unlike the old
+  // fromState/toState this replaces - that carried wrong field names
+  // and had none.
+  returnedHome: boolean;
 }
 
 /**
@@ -271,7 +278,8 @@ class GameService {
           pieceId: newPiece.id,
           color: newPiece.color,
           from: oldPiece.position,
-          to: newPiece.position
+          to: newPiece.position,
+          returnedHome: !oldPiece.isAtHome && newPiece.isAtHome
         });
       }
     });

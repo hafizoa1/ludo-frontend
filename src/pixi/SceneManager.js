@@ -3,6 +3,7 @@ import LobbyScene from './scenes/LobbyScene';
 //import GameScene from './scenes/GameScene';
 import GameScene from './scenes/game-scene/GameScene';
 import eventBus from '../utils/EventBus';
+import { motion } from './design/tokens';
 
 /**
  * SceneManager - Handles scene transitions and management
@@ -235,9 +236,9 @@ class SceneManager {
 
       // Fade out old scene and fade in new scene
       if (oldScene) {
-        timeline.to(oldScene, { alpha: 0, duration: 0.5 });
+        timeline.to(oldScene, { alpha: 0, duration: motion.glide.duration, ease: motion.glide.ease });
       }
-      timeline.to(newScene, { alpha: 1, duration: 0.5 }, oldScene ? "-=0.3" : 0);
+      timeline.to(newScene, { alpha: 1, duration: motion.glide.duration, ease: motion.glide.ease }, oldScene ? "-=0.3" : 0);
     });
   }
 
@@ -270,9 +271,9 @@ class SceneManager {
 
       // Slide old scene out and new scene in
       if (oldScene) {
-        timeline.to(oldScene, { x: -1200, duration: 0.7, ease: "power2.inOut" });
+        timeline.to(oldScene, { x: -1200, duration: 0.7, ease: motion.glide.ease });
       }
-      timeline.to(newScene, { x: 0, duration: 0.7, ease: "power2.inOut" }, oldScene ? "-=0.5" : 0);
+      timeline.to(newScene, { x: 0, duration: 0.7, ease: motion.glide.ease }, oldScene ? "-=0.5" : 0);
     });
   }
 

@@ -4,7 +4,7 @@ import * as PIXI from 'pixi.js';
 import { gsap } from 'gsap';
 import { backendToPixel, getPieceHomePositions, generateStepByStepPath } from '../../utils/coordinateUtils';
 import eventBus from '../../../utils/EventBus';
-import { color as tokenColor, type, fontFamily } from '../../design/tokens';
+import { color as tokenColor, type, motion, fontFamily } from '../../design/tokens';
 
 /**
  * PiecesContainer - Manages all game pieces
@@ -386,25 +386,28 @@ class PiecesContainer extends PIXI.Container {
   }
 
   /**
-   * Move piece to new position with animation
+   * Move piece to new position with animation. `returnedHome` means this
+   * movement is a capture sending the piece back to start, not a normal
+   * forward move - it gets a pop-out/pop-in instead of walking a path
+   * that doesn't really lead anywhere sensible off the main track.
    */
-  movePieceToPosition(piece, newGridPosition, animate = true) {
-
-    console.log('Moving piece to position');
-
+  movePieceToPosition(piece, newGridPosition, animate = true, returnedHome = false) {
     if (!animate) {
       this.positionPiece(piece, newGridPosition);
       return;
     }
 
-
-  // NEW: Emit animation start event
     eventBus.emit('piece.animation.start', {
       pieceId: piece.id,
       fromPosition: piece.gridPosition,
       toPosition: newGridPosition,
       timestamp: Date.now()
     });
+
+    if (returnedHome) {
+      this.animateCapturedPiece(piece, newGridPosition);
+      return;
+    }
 
     // Generate step-by-step movement path using actual board cells
     const movementPath = generateStepByStepPath(
@@ -416,6 +419,34 @@ class PiecesContainer extends PIXI.Container {
 
     // Animate along path
     this.animatePieceAlongPath(piece, movementPath, newGridPosition);
+  }
+
+  /**
+   * A captured piece doesn't walk back to start - it's removed and
+   * placed there. Pop out, reposition while invisible, pop back in.
+   */
+  animateCapturedPiece(piece, newGridPosition) {
+    piece.interactive = false;
+
+    const timeline = gsap.timeline({
+      onComplete: () => {
+        piece.gridPosition = { ...newGridPosition };
+        piece.interactive = true;
+        this.updatePieceVisualState(piece);
+
+        eventBus.emit('piece.animation.complete', {
+          pieceId: piece.id,
+          finalPosition: newGridPosition,
+          timestamp: Date.now()
+        });
+      }
+    });
+
+    timeline.to(piece.scale, { x: 0, y: 0, duration: motion.impact.duration, ease: 'power2.in' });
+    timeline.to(piece, { alpha: 0, duration: motion.impact.duration }, '<');
+    timeline.call(() => this.positionPiece(piece, newGridPosition));
+    timeline.to(piece, { alpha: 1, duration: motion.pop.duration });
+    timeline.to(piece.scale, { x: 1, y: 1, duration: motion.pop.duration, ease: motion.pop.ease });
   }
 
   /**
@@ -462,9 +493,16 @@ class PiecesContainer extends PIXI.Container {
       }
     });
 
-    // Animation config
+    // Animation config. A flat per-hop duration meant a 6-step move took
+    // 6x as long as a 1-step one - proportionally correct, but it reads
+    // as mechanical rather than fluid. Clamp the total so a short move
+    // keeps today's snappy feel exactly, and a long one compresses
+    // toward a cap instead of growing unbounded.
     const hopHeight = 12; // Pixels to hop up
-    const hopDuration = 0.12; // Duration per hop (faster for better game feel)
+    const baseHopDuration = 0.12;
+    const totalDurationCap = 0.6;
+    const numHops = Math.max(1, path.length - 1);
+    const hopDuration = Math.min(baseHopDuration, totalDurationCap / numHops);
 
     // Animate each step with a hop
     path.forEach((point, index) => {
@@ -499,15 +537,15 @@ class PiecesContainer extends PIXI.Container {
     timeline.to(piece.scale, {
       x: 1,
       y: 1,
-      duration: 0.15,
-      ease: "elastic.out(1.5, 0.3)"
+      duration: motion.impact.duration,
+      ease: motion.impact.ease
     }, finalTime + 0.08);
   }
 
   /**
  * Move specific piece - FIXED logging and position format
  */
-  movePiece(pieceId, fromPosition, toPosition) {
+  movePiece(pieceId, fromPosition, toPosition, returnedHome = false) {
     console.log('🔴 PiecesContainer.movePiece called with:', pieceId, fromPosition, toPosition);
   
     const piece = this.pieces.get(pieceId);
@@ -525,7 +563,7 @@ class PiecesContainer extends PIXI.Container {
       col: toPosition.col
     };
   
-    this.movePieceToPosition(piece, targetPosition, true);
+    this.movePieceToPosition(piece, targetPosition, true, returnedHome);
   }
 
   /**
@@ -541,11 +579,11 @@ class PiecesContainer extends PIXI.Container {
     // Animate selection ring
     gsap.fromTo(piece.selectionRing.scale,
       { x: 0, y: 0 },
-      { 
-        x: 1, 
-        y: 1, 
-        duration: 0.3, 
-        ease: "back.out(1.7)" 
+      {
+        x: 1,
+        y: 1,
+        duration: motion.pop.duration,
+        ease: motion.pop.ease
       }
     );
     
