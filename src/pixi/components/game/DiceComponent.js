@@ -79,17 +79,26 @@ class DiceComponent extends PIXI.Container {
     dieContainer.addChild(glow);
     dieContainer.glow = glow;
     
-    // Simple clean dice face - just one flat square
+    // Simple clean dice face - just one flat square. Drawn from (0,0), so
+    // pivot+position are both shifted to the square's center - otherwise
+    // rotating it (see startRollingAnimation) spins it around its top-left
+    // corner instead of in place.
     const diceBody = new PIXI.Graphics();
     diceBody.roundRect(0, 0, this.size, this.size, 8);
     diceBody.fill({ color: color.text.primary });
     diceBody.stroke({ color: color.text.secondary, width: 2 });
-    
+    diceBody.pivot.set(this.size / 2, this.size / 2);
+    diceBody.position.set(this.size / 2, this.size / 2);
+
     dieContainer.addChild(diceBody);
     dieContainer.diceBody = diceBody;
-    
-    // Dice face for dots
+
+    // Dice face for dots - its dots are drawn centered at (size/2, size/2)
+    // in updateDiceFace() below, so it needs the same center pivot to spin
+    // in sync with diceBody rather than around its own unrelated corner.
     const diceFace = new PIXI.Container();
+    diceFace.pivot.set(this.size / 2, this.size / 2);
+    diceFace.position.set(this.size / 2, this.size / 2);
     dieContainer.addChild(diceFace);
     dieContainer.diceFace = diceFace;
     
@@ -272,8 +281,10 @@ class DiceComponent extends PIXI.Container {
       this.showRandomValues(rotationDuration);
     });
 
-    // Phase 3: Settling animation
-    this.rollAnimation.to([this.dice1.diceBody, this.dice2.diceBody], {
+    // Phase 3: Settling animation. diceFace (the dots) rotates together
+    // with diceBody - they used to spin independently, so the dots sat
+    // static while only the blank square underneath turned.
+    this.rollAnimation.to([this.dice1.diceBody, this.dice1.diceFace, this.dice2.diceBody, this.dice2.diceFace], {
       rotation: "+=6.28", // Full rotation
       duration: rotationDuration,
       ease: "power2.out"
