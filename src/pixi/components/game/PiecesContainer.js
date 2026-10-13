@@ -5,6 +5,7 @@ import { gsap } from 'gsap';
 import { backendToPixel, getPieceHomePositions, generateStepByStepPath } from '../../utils/coordinateUtils';
 import eventBus from '../../../utils/EventBus';
 import { color as tokenColor, type, motion, fontFamily } from '../../design/tokens';
+import { applyElevation } from '../../design/depth';
 
 /**
  * PiecesContainer - Manages all game pieces
@@ -91,21 +92,21 @@ class PiecesContainer extends PIXI.Container {
   createPieceVisual(piece, color) {
     const pieceSize = (this.boardSize / 15) * 0.6; // 60% of cell size
 
-    // Main piece body
+    // Main piece body - its own small container so the drop-shadow filter
+    // and cacheAsTexture (below) apply only to this static shape, not to
+    // the rings/tooltip that toggle visibility and alpha on top of it.
+    const visual = new PIXI.Container();
     const body = new PIXI.Graphics();
     body.circle(0, 0, pieceSize);
     body.fill({ color: tokenColor.player[color] });
     body.stroke({ color: tokenColor.text.primary, width: 2 });
+    visual.addChild(body);
+    applyElevation(visual, 1);
 
     // Inner highlight
     const highlight = new PIXI.Graphics();
     highlight.circle(-pieceSize * 0.3, -pieceSize * 0.3, pieceSize * 0.3);
     highlight.fill({ color: tokenColor.text.primary, alpha: 0.4 });
-
-    // Shadow
-    const shadow = new PIXI.Graphics();
-    shadow.circle(2, 2, pieceSize);
-    shadow.fill({ color: 0x000000, alpha: 0.3 });
 
     // Selection ring (hidden initially)
     const selectionRing = new PIXI.Graphics();
@@ -134,18 +135,17 @@ class PiecesContainer extends PIXI.Container {
     tooltip.name = 'tooltip';
 
     // Add all elements to piece
-    piece.addChild(shadow);
     piece.addChild(selectionRing);
     piece.addChild(moveIndicator);
     piece.addChild(captureWarning);
-    piece.addChild(body);
+    piece.addChild(visual);
     piece.addChild(highlight);
     piece.addChild(tooltip);
 
     // Store references
     piece.body = body;
+    piece.visual = visual;
     piece.highlight = highlight;
-    piece.shadow = shadow;
     piece.selectionRing = selectionRing;
     piece.moveIndicator = moveIndicator;
     piece.captureWarning = captureWarning;

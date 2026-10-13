@@ -2,6 +2,7 @@
 import * as PIXI from 'pixi.js';
 import { BOARD_CONFIG, gridToPixel, backendToPixel } from '../../utils/coordinateUtils';
 import gsap from 'gsap';
+import { applyElevation } from '../../design/depth';
 
 /**
  * BoardComponent - Beautiful 15x15 Ludo game board
@@ -23,8 +24,13 @@ class BoardComponent extends PIXI.Container {
 
     
     console.log('🎲 BoardComponent created', { size: this.size, gridSize: this.gridSize });
-    
+
     this.createBoard();
+
+    // Everything inside is drawn once in createBoard() and never redrawn -
+    // highlightCell()/animateEntrance() are dead code with no callers, so
+    // nothing here needs updateCacheTexture() after this point.
+    applyElevation(this, 2);
   }
 
   /**

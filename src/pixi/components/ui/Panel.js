@@ -2,6 +2,7 @@
 
 import * as PIXI from 'pixi.js';
 import { color, radius } from '../../design/tokens';
+import { applyElevation } from '../../design/depth';
 
 // Named presets - a caller picks one instead of passing bg/border/radius
 // individually. Explicit options still override a preset's values, so
@@ -49,6 +50,11 @@ class Panel extends PIXI.Graphics {
     if (this.options.borderWidth > 0) {
       this.stroke({ color: this.options.borderColor, width: this.options.borderWidth });
     }
+
+    // Flat, non-reactive shadow - callers only ever tween this panel's own
+    // alpha/position/scale (never redraw its fill after this), so caching
+    // right after each (re)draw stays correct with no further updates needed.
+    applyElevation(this, 1);
   }
 
   /**
