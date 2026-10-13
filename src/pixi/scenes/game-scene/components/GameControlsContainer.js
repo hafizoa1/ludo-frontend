@@ -3,6 +3,7 @@ import DiceComponent from '../../../components/game/DiceComponent';
 import Button from '../../../components/ui/Button';
 import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 import webSocketService from '../../../../services/WebSocketService';
+import { color, fontFamily } from '../../../design/tokens';
 
 /**
  * GameControlsContainer - Encapsulates dice and turn indicator
@@ -44,9 +45,9 @@ class GameControlsContainer extends PIXI.Container {
     // Create turn indicator
     const uiLayout = this.layout.getUILayout();
     this.turnText = new PIXI.Text('', {
-      fontFamily: 'Arial, sans-serif',
+      fontFamily,
       fontSize: uiLayout.turnIndicator.fontSize,
-      fill: '#ffdd44',
+      fill: color.text.warning,
       align: 'center'
     });
     this.turnText.anchor.set(0.5);
@@ -60,9 +61,7 @@ class GameControlsContainer extends PIXI.Container {
       text: 'Leave Game',
       width: 120 * scaleFactor,
       height: 40 * scaleFactor,
-      backgroundColor: 0xff4444,
-      hoverColor: 0xcc3333,
-      pressedColor: 0x992222,
+      variant: 'danger',
       fontSize: Math.max(12, 14 * scaleFactor)
     });
     this.leaveButton.x = 20 * scaleFactor;
@@ -130,7 +129,7 @@ class GameControlsContainer extends PIXI.Container {
         this.dice.setEnabled(false);
         this.dice.hideYourTurn();
         this.turnText.text = data.message;
-        this.turnText.style.fill = '#ff4444';
+        this.turnText.style.fill = color.state.danger;
       }
     });
   }
@@ -184,10 +183,10 @@ class GameControlsContainer extends PIXI.Container {
     if (this.turnText) {
       if (data.isMyTurn) {
         this.turnText.text = 'YOUR TURN - Click dice to roll!';
-        this.turnText.style.fill = '#44ff44';
+        this.turnText.style.fill = color.player.green;
       } else {
         this.turnText.text = `${data.playerName || data.newPlayer}'s turn`;
-        this.turnText.style.fill = '#ffdd44';
+        this.turnText.style.fill = color.text.warning;
       }
     }
   }

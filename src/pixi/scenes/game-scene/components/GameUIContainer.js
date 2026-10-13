@@ -2,6 +2,7 @@ import * as PIXI from 'pixi.js';
 import { gsap } from 'gsap';
 import { LAYOUT_CONFIG } from '../config/layout.config';
 import eventBus from '../../../../utils/EventBus';
+import { color, type, fontFamily } from '../../../design/tokens';
 
 /**
  * GameUIContainer - Manages UI overlays, messages, and game over screen
@@ -41,10 +42,10 @@ class GameUIContainer extends PIXI.Container {
     const uiLayout = this.layout.getUILayout();
     
     this.titleText = new PIXI.Text('🎲 LUDO GAME', {
-      fontFamily: 'Arial, sans-serif',
+      fontFamily,
       fontSize: uiLayout.title.fontSize,
       fontWeight: 'bold',
-      fill: '#ffffff',
+      fill: color.text.primary,
       align: 'center'
     });
     this.titleText.anchor.set(0.5);
@@ -84,9 +85,9 @@ class GameUIContainer extends PIXI.Container {
     messageBg.fill({ color: 0x000000, alpha: 0.8 });
     
     const messageText = new PIXI.Text(message, {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 16,
-      fill: '#ffffff',
+      fontFamily,
+      fontSize: type.label,
+      fill: color.text.primary,
       align: 'center',
       wordWrap: true,
       wordWrapWidth: 280
@@ -153,8 +154,8 @@ class GameUIContainer extends PIXI.Container {
     overlay.fill({ color: 0x000000, alpha: 0.8 });
 
     const winText = new PIXI.Text(`🎉 ${winner.toUpperCase()} WINS! 🎉`, {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 48,
+      fontFamily,
+      fontSize: type.hero,
       fontWeight: 'bold',
       fill: this.getPlayerColor(winner),
       align: 'center'
@@ -193,10 +194,10 @@ class GameUIContainer extends PIXI.Container {
     overlay.fill({ color: 0x000000, alpha: 0.8 });
 
     const messageText = new PIXI.Text(message, {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 32,
+      fontFamily,
+      fontSize: type.display,
       fontWeight: 'bold',
-      fill: '#ffffff',
+      fill: color.text.primary,
       align: 'center',
       wordWrap: true,
       wordWrapWidth: canvasDims.width * 0.8
@@ -208,17 +209,17 @@ class GameUIContainer extends PIXI.Container {
 
     const buttonBg = new PIXI.Graphics();
     buttonBg.roundRect(-100, -25, 200, 50, 8);
-    buttonBg.fill({ color: 0x4CAF50 });
+    buttonBg.fill({ color: color.state.success });
     buttonBg.x = canvasDims.width / 2;
     buttonBg.y = canvasDims.height / 2 + 60;
     buttonBg.interactive = true;
     buttonBg.cursor = 'pointer';
 
     const buttonText = new PIXI.Text('Back to Menu', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 18,
+      fontFamily,
+      fontSize: type.heading,
       fontWeight: 'bold',
-      fill: '#ffffff',
+      fill: color.text.primary,
       align: 'center'
     });
     buttonText.anchor.set(0.5);
@@ -250,13 +251,10 @@ class GameUIContainer extends PIXI.Container {
    * Get player color
    */
   getPlayerColor(player) {
-    const colors = {
-      red: '#ff4444',
-      blue: '#4444ff',
-      green: '#44ff44',
-      yellow: '#ffff44'
-    };
-    return colors[player] || '#ffffff';
+    // Was its own local map with yellow: '#ffff44' - a shade off from the
+    // board's actual piece yellow (color.player.yellow, 0xffdd44). The
+    // win screen now matches the piece that actually won.
+    return color.player[player] || color.text.primary;
   }
 
   /**

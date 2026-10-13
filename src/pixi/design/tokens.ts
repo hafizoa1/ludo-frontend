@@ -5,7 +5,15 @@
 // should trace back here instead of being invented per call site - see
 // docs/move-selection-redesign.md's sibling re-jig plan for why.
 
+// Shared literal, referenced by multiple semantic groups below so they
+// stay in sync without implying a relationship that isn't there.
+const GOLD = 0xffd700;
+
 export const color = {
+  accent: {
+    gold: GOLD
+  },
+
   player: {
     red: 0xff4444,
     blue: 0x4444ff,
@@ -14,6 +22,10 @@ export const color = {
   },
 
   bg: {
+    // The whole game canvas's background (layout.config.js) - genuinely
+    // distinct from `base` below, not a duplicate; don't merge them.
+    scene: 0x1a237e,
+    // The move-menu/capture-panel background (MoveManager, PieceMoveMenu).
     base: 0x1a1a2e,
     panel: 0x2a2a4a,
     panelElevated: 0x33335a
@@ -29,7 +41,11 @@ export const color = {
     secondary: 0xcccccc,
     warning: 0xffdd44,
     danger: 0xff4444,
-    success: 0x4CAF50
+    success: 0x4CAF50,
+    // Dark text for the rare light-background contexts (the dice face,
+    // PlayerPanel's stats strip) - duplicated identically across both
+    // before this, now one token.
+    onLight: 0x333333
   },
 
   // Semantic action colors - every Button variant and ad hoc colored
@@ -50,7 +66,26 @@ export const color = {
     neutralPressed: 0x444444,
     // Connection-trouble orange - distinct from text.warning's yellow,
     // duplicated identically across CreateGamePanel/JoinGamePanel.
-    connectionWarning: 0xff8844
+    connectionWarning: 0xff8844,
+    // The "you can move this piece" glow (PiecesContainer.moveIndicator).
+    moveGlow: 0x00ff00
+  },
+
+  // A piece's own home/path/finished indicator color (PlayerPanel).
+  pieceStatus: {
+    home: 0x999999,
+    path: GOLD,
+    finished: 0x00ff00
+  },
+
+  // A player's overall status text color (PlayerPanel.updateStatus).
+  playerStatus: {
+    waiting: 0x999999,
+    playing: 0x00aa00,
+    rolling: 0xff8800,
+    moving: 0x0088ff,
+    finished: 0x00ff00,
+    disconnected: 0xff0000
   },
 
   // Deliberate per-context lobby panel tints (create/join/waiting) - kept
@@ -76,7 +111,11 @@ export const type = {
   label: 16,
   heading: 20,
   title: 28,
-  display: 32
+  display: 32,
+  // The one deliberately-oversized moment in the app (the win screen) -
+  // kept distinct rather than forced down into `display`, since that
+  // would be a real visual downgrade for the game's biggest celebration.
+  hero: 48
 } as const;
 
 // Named by motion INTENT, not by component, so every gsap call picks one

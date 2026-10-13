@@ -2,6 +2,7 @@
 
 import * as PIXI from 'pixi.js';
 import { gsap } from 'gsap';
+import { color as tokenColor, radius, type, fontFamily } from '../../design/tokens';
 
 /**
  * PlayerPanel - Display player information and statistics
@@ -47,23 +48,23 @@ class PlayerPanel extends PIXI.Container {
    * Create panel background
    */
   createBackground() {
-    const colors = {
-      red: 0xff6b6b,
-      blue: 0x4dabf7,
-      green: 0x51cf66,
-      yellow: 0xffd43b
-    };
-    
+    // Was a separate, softer palette (0xff6b6b etc.) from getPlayerColor()'s
+    // canonical one below - meaning this panel's own border and the piece-
+    // color dot drawn inside it were two different shades of "red" sitting
+    // next to each other. Both now pull from the same color.player tokens
+    // the board itself uses, at reduced alpha for the background fill.
+    const playerColor = this.getPlayerColor();
+
     // Main background
     this.background = new PIXI.Graphics();
-    this.background.roundRect(0, 0, this.width, this.height, 10);
-    this.background.fill({ color: colors[this.color], alpha: 0.2 });
+    this.background.roundRect(0, 0, this.width, this.height, radius.md);
+    this.background.fill({ color: playerColor, alpha: 0.2 });
     this.addChild(this.background);
-    
+
     // Border
     this.border = new PIXI.Graphics();
-    this.border.roundRect(0, 0, this.width, this.height, 10);
-    this.border.stroke({ color: colors[this.color], width: 2 });
+    this.border.roundRect(0, 0, this.width, this.height, radius.md);
+    this.border.stroke({ color: playerColor, width: 2 });
     this.addChild(this.border);
   }
 
@@ -73,8 +74,8 @@ class PlayerPanel extends PIXI.Container {
   createHeader() {
     // Player name
     this.playerNameText = new PIXI.Text(this.color.toUpperCase(), {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 18,
+      fontFamily,
+      fontSize: type.label,
       fontWeight: 'bold',
       fill: this.getPlayerColor(),
       align: 'center'
@@ -82,12 +83,12 @@ class PlayerPanel extends PIXI.Container {
     this.playerNameText.x = 10;
     this.playerNameText.y = 10;
     this.addChild(this.playerNameText);
-    
+
     // Player color indicator
     const colorIndicator = new PIXI.Graphics();
     colorIndicator.circle(this.width - 25, 25, 12);
     colorIndicator.fill({ color: this.getPlayerColor() });
-    colorIndicator.stroke({ color: 0xffffff, width: 2 });
+    colorIndicator.stroke({ color: tokenColor.text.primary, width: 2 });
     this.addChild(colorIndicator);
   }
 
@@ -100,8 +101,8 @@ class PlayerPanel extends PIXI.Container {
     
     // Title
     const statusTitle = new PIXI.Text('Pieces:', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 12,
+      fontFamily,
+      fontSize: type.caption,
       fill: '#666666',
       align: 'left'
     });
@@ -131,12 +132,12 @@ class PlayerPanel extends PIXI.Container {
     const piece = new PIXI.Graphics();
     piece.circle(0, 0, 10);
     piece.fill({ color: this.getPlayerColor(), alpha: 0.6 });
-    piece.stroke({ color: 0xffffff, width: 1 });
-    
+    piece.stroke({ color: tokenColor.text.primary, width: 1 });
+
     // Status indicator (home/path/finished)
     const statusRing = new PIXI.Graphics();
     statusRing.circle(0, 0, 12);
-    statusRing.stroke({ color: 0x999999, width: 2 });
+    statusRing.stroke({ color: tokenColor.pieceStatus.home, width: 2 });
     statusRing.name = 'statusRing';
     
     container.addChild(statusRing);
@@ -165,26 +166,26 @@ class PlayerPanel extends PIXI.Container {
     
     // Create stat displays
     this.movesText = new PIXI.Text('Moves: 0', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 11,
-      fill: '#333333'
+      fontFamily,
+      fontSize: type.caption,
+      fill: tokenColor.text.onLight
     });
     this.movesText.x = 10;
     this.movesText.y = 8;
     this.statsContainer.addChild(this.movesText);
-    
+
     this.capturesText = new PIXI.Text('Captures: 0', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 11,
-      fill: '#333333'
+      fontFamily,
+      fontSize: type.caption,
+      fill: tokenColor.text.onLight
     });
     this.capturesText.x = 10;
     this.capturesText.y = 25;
     this.statsContainer.addChild(this.capturesText);
-    
+
     this.statusText = new PIXI.Text('Waiting...', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 10,
+      fontFamily,
+      fontSize: type.caption,
       fill: '#666666',
       fontStyle: 'italic'
     });
@@ -207,15 +208,15 @@ class PlayerPanel extends PIXI.Container {
     // Animated border for current turn
     const glowBorder = new PIXI.Graphics();
     glowBorder.roundRect(-5, -5, this.width + 10, this.height + 10, 15);
-    glowBorder.stroke({ color: 0xffffff, width: 4 });
+    glowBorder.stroke({ color: tokenColor.text.primary, width: 4 });
     this.turnIndicator.addChild(glowBorder);
-    
+
     // Turn text
     const turnText = new PIXI.Text('YOUR TURN', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 12,
+      fontFamily,
+      fontSize: type.caption,
       fontWeight: 'bold',
-      fill: '#ffffff',
+      fill: tokenColor.text.primary,
       align: 'center'
     });
     turnText.anchor.set(0.5);
@@ -233,13 +234,7 @@ class PlayerPanel extends PIXI.Container {
    * Get player color hex value
    */
   getPlayerColor() {
-    const colors = {
-      red: 0xff4444,
-      blue: 0x4444ff,
-      green: 0x44ff44,
-      yellow: 0xffdd44
-    };
-    return colors[this.color] || 0xffffff;
+    return tokenColor.player[this.color] || tokenColor.text.primary;
   }
 
   /**
@@ -295,13 +290,7 @@ class PlayerPanel extends PIXI.Container {
       indicator.status = newStatus;
       
       // Update visual based on status
-      const colors = {
-        home: 0x999999,      // Gray for home
-        path: 0xffd700,      // Gold for on path
-        finished: 0x00ff00   // Green for finished
-      };
-      
-      const statusColor = colors[newStatus] || 0x999999;
+      const statusColor = tokenColor.pieceStatus[newStatus] || tokenColor.pieceStatus.home;
       
       // Animate color change
       gsap.to(indicator.statusRing, {
@@ -386,18 +375,9 @@ class PlayerPanel extends PIXI.Container {
     };
     
     this.statusText.text = statusTexts[status] || status;
-    
+
     // Color code the status
-    const statusColors = {
-      waiting: 0x999999,
-      playing: 0x00aa00,
-      rolling: 0xff8800,
-      moving: 0x0088ff,
-      finished: 0x00ff00,
-      disconnected: 0xff0000
-    };
-    
-    this.statusText.style.fill = statusColors[status] || 0x666666;
+    this.statusText.style.fill = tokenColor.playerStatus[status] || 0x666666;
   }
 
   /**
@@ -559,7 +539,7 @@ class PlayerPanel extends PIXI.Container {
     });
     
     celebration.to(this.border, {
-      tint: 0xffd700, // Gold tint
+      tint: tokenColor.pieceStatus.path, // Gold tint
       duration: 0.3
     }, 0);
     
@@ -576,10 +556,10 @@ class PlayerPanel extends PIXI.Container {
     
     // Show winner text
     const winnerText = new PIXI.Text('WINNER!', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 16,
+      fontFamily,
+      fontSize: type.label,
       fontWeight: 'bold',
-      fill: 0xffd700,
+      fill: tokenColor.pieceStatus.path,
       align: 'center'
     });
     winnerText.anchor.set(0.5);

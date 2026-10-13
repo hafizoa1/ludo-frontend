@@ -3,6 +3,8 @@
  * Compatible with old interface - has both old property names and new proportional scaling
  */
 
+import { color } from '../../../design/tokens';
+
 // Base design dimensions (your original working layout)
 const BASE_WIDTH = 1200;
 const BASE_HEIGHT = 800;
@@ -117,15 +119,15 @@ export const LAYOUT_CONFIG = {
     }
   },
 
-  // Colors (unchanged)
+  // Colors - sourced from design/tokens.js, the real single source of
+  // truth. `players` here was its own drifted copy (yellow: 0xffff44 vs
+  // the board's actual 0xffdd44) and, per the architecture map, was never
+  // even read by anything - kept for now as a convenience alias in case
+  // something starts consuming LAYOUT_CONFIG.colors.players, but it can no
+  // longer drift since it's the same token object.
   colors: {
-    background: 0x1a237e,
-    players: {
-      red: 0xff4444,
-      blue: 0x4444ff,
-      green: 0x44ff44,
-      yellow: 0xffff44
-    }
+    background: color.bg.scene,
+    players: color.player
   }
 };
 

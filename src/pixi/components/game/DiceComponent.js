@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js';
 import { gsap } from 'gsap';
 import eventBus from '../../../utils/EventBus';
+import { color, type, fontFamily } from '../../design/tokens';
 
 /**
  * DiceComponent - Clean, fast, and user-friendly dual dice
@@ -74,15 +75,15 @@ class DiceComponent extends PIXI.Container {
     // Hover glow effect
     const glow = new PIXI.Graphics();
     glow.circle(this.size/2, this.size/2, this.size * 0.7);
-    glow.fill({ color: 0xffd700, alpha: 0 });
+    glow.fill({ color: color.accent.gold, alpha: 0 });
     dieContainer.addChild(glow);
     dieContainer.glow = glow;
     
     // Simple clean dice face - just one flat square
     const diceBody = new PIXI.Graphics();
     diceBody.roundRect(0, 0, this.size, this.size, 8);
-    diceBody.fill({ color: 0xffffff });
-    diceBody.stroke({ color: 0xcccccc, width: 2 });
+    diceBody.fill({ color: color.text.primary });
+    diceBody.stroke({ color: color.text.secondary, width: 2 });
     
     dieContainer.addChild(diceBody);
     dieContainer.diceBody = diceBody;
@@ -106,14 +107,14 @@ class DiceComponent extends PIXI.Container {
     
     const buttonBg = new PIXI.Graphics();
     buttonBg.roundRect(-50, -20, 100, 40, 8);
-    buttonBg.fill({ color: 0x4CAF50, alpha: 0.9 });
-    buttonBg.stroke({ color: 0xffffff, width: 2 });
-    
+    buttonBg.fill({ color: color.state.success, alpha: 0.9 });
+    buttonBg.stroke({ color: color.text.primary, width: 2 });
+
     const rollText = new PIXI.Text('ROLL', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 14,
+      fontFamily,
+      fontSize: type.body,
       fontWeight: 'bold',
-      fill: '#ffffff',
+      fill: color.text.primary,
       align: 'center'
     });
     rollText.anchor.set(0.5);
@@ -128,10 +129,10 @@ class DiceComponent extends PIXI.Container {
     this.totalDisplay.alpha = 0;
     
     const totalText = new PIXI.Text('Total: 2', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 18,
+      fontFamily,
+      fontSize: type.heading,
       fontWeight: 'bold',
-      fill: '#333333',
+      fill: color.text.onLight,
       align: 'center'
     });
     totalText.anchor.set(0.5);
@@ -387,7 +388,7 @@ class DiceComponent extends PIXI.Container {
     dots.forEach((dotPos, index) => {
       const dot = new PIXI.Graphics();
       dot.circle(dotPos.x, dotPos.y, dotSize);
-      dot.fill({ color: 0x333333 });
+      dot.fill({ color: color.text.onLight });
       
       // Simple staggered appearance animation
       dot.alpha = 0;

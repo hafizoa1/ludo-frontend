@@ -4,6 +4,7 @@ import * as PIXI from 'pixi.js';
 import { gsap } from 'gsap';
 import { backendToPixel, getPieceHomePositions, generateStepByStepPath } from '../../utils/coordinateUtils';
 import eventBus from '../../../utils/EventBus';
+import { color as tokenColor, type, fontFamily } from '../../design/tokens';
 
 /**
  * PiecesContainer - Manages all game pieces
@@ -88,25 +89,18 @@ class PiecesContainer extends PIXI.Container {
    * Create visual appearance of piece
    */
   createPieceVisual(piece, color) {
-    const colors = {
-      red: 0xff4444,
-      blue: 0x4444ff,
-      green: 0x44ff44,
-      yellow: 0xffdd44
-    };
-
     const pieceSize = (this.boardSize / 15) * 0.6; // 60% of cell size
 
     // Main piece body
     const body = new PIXI.Graphics();
     body.circle(0, 0, pieceSize);
-    body.fill({ color: colors[color] });
-    body.stroke({ color: 0xffffff, width: 2 });
+    body.fill({ color: tokenColor.player[color] });
+    body.stroke({ color: tokenColor.text.primary, width: 2 });
 
     // Inner highlight
     const highlight = new PIXI.Graphics();
     highlight.circle(-pieceSize * 0.3, -pieceSize * 0.3, pieceSize * 0.3);
-    highlight.fill({ color: 0xffffff, alpha: 0.4 });
+    highlight.fill({ color: tokenColor.text.primary, alpha: 0.4 });
 
     // Shadow
     const shadow = new PIXI.Graphics();
@@ -116,21 +110,21 @@ class PiecesContainer extends PIXI.Container {
     // Selection ring (hidden initially)
     const selectionRing = new PIXI.Graphics();
     selectionRing.circle(0, 0, pieceSize * 1.3);
-    selectionRing.stroke({ color: 0xffffff, width: 3 });
+    selectionRing.stroke({ color: tokenColor.text.primary, width: 3 });
     selectionRing.visible = false;
     selectionRing.name = 'selectionRing';
 
     // Available move indicator (hidden initially)
     const moveIndicator = new PIXI.Graphics();
     moveIndicator.circle(0, 0, pieceSize * 1.5);
-    moveIndicator.fill({ color: 0x00ff00, alpha: 0.3 });
+    moveIndicator.fill({ color: tokenColor.state.moveGlow, alpha: 0.3 });
     moveIndicator.visible = false;
     moveIndicator.name = 'moveIndicator';
 
     // "Would be captured" / "tap to capture" ring (hidden initially)
     const captureWarning = new PIXI.Graphics();
     captureWarning.circle(0, 0, pieceSize * 1.5);
-    captureWarning.stroke({ color: 0xff4444, width: 3 });
+    captureWarning.stroke({ color: tokenColor.state.danger, width: 3 });
     captureWarning.visible = false;
     captureWarning.name = 'captureWarning';
 
@@ -178,14 +172,14 @@ class PiecesContainer extends PIXI.Container {
       4
     );
     tooltipBg.fill({ color: 0x000000, alpha: 0.8 });
-    tooltipBg.stroke({ color: 0xffffff, width: 1 });
+    tooltipBg.stroke({ color: tokenColor.text.primary, width: 1 });
 
     // Tooltip text
     const tooltipText = new PIXI.Text(pieceId, {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 12,
+      fontFamily,
+      fontSize: type.caption,
       fontWeight: 'bold',
-      fill: '#ffffff',
+      fill: tokenColor.text.primary,
       align: 'center'
     });
     tooltipText.anchor.set(0.5);
