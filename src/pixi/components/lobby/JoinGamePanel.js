@@ -6,6 +6,7 @@ import eventBus from '../../../utils/EventBus';
 import Button from '../ui/Button';
 import Panel from '../ui/Panel';
 import TextInput from '../ui/TextInput';
+import { color, type, fontFamily } from '../../design/tokens';
 
 /**
  * JoinGamePanel - Panel for joining existing games
@@ -36,12 +37,10 @@ class JoinGamePanel extends PIXI.Container {
   setupPanel() {
     // Create background panel
     this.panel = new Panel({
+      variant: 'join',
       width: 300,
       height: 400,
-      backgroundColor: 0x2a4a2a,
-      borderColor: 0x4a6a4a,
-      borderWidth: 3,
-      cornerRadius: 20
+      borderWidth: 3
     });
     this.addChild(this.panel);
 
@@ -72,10 +71,10 @@ class JoinGamePanel extends PIXI.Container {
    */
   createTitle() {
     const titleStyle = new PIXI.TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 28,
+      fontFamily,
+      fontSize: type.title,
       fontWeight: 'bold',
-      fill: '#ffffff',
+      fill: color.text.primary,
       align: 'center'
     });
 
@@ -91,9 +90,9 @@ class JoinGamePanel extends PIXI.Container {
    */
   createDescription() {
     const descStyle = new PIXI.TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 16,
-      fill: '#cccccc',
+      fontFamily,
+      fontSize: type.label,
+      fill: color.text.secondary,
       align: 'center',
       wordWrap: true,
       wordWrapWidth: 260
@@ -158,11 +157,8 @@ class JoinGamePanel extends PIXI.Container {
       text: 'Join Game',
       width: 200,
       height: 60,
-      backgroundColor: 0x2196F3,
-      hoverColor: 0x1976D2,
-      textColor: 0xFFFFFF,
-      fontSize: 18,
-      cornerRadius: 10,
+      variant: 'primary',
+      fontSize: type.heading,
       enabled: false // Disabled until game ID is entered
     });
     this.joinButton.x = 50;
@@ -180,8 +176,8 @@ class JoinGamePanel extends PIXI.Container {
    */
   createLoadingSpinner() {
     this.loadingSpinner = new PIXI.Graphics();
-    this.loadingSpinner.lineStyle(4, 0x2196F3, 1);
     this.loadingSpinner.arc(0, 0, 20, 0, Math.PI * 1.5);
+    this.loadingSpinner.stroke({ color: color.state.info, width: 4 });
     this.loadingSpinner.x = 150;
     this.loadingSpinner.y = 290;
     this.loadingSpinner.visible = false;
@@ -202,9 +198,9 @@ class JoinGamePanel extends PIXI.Container {
    */
   createStatusText() {
     const statusStyle = new PIXI.TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 14,
-      fill: '#ffdd44',
+      fontFamily,
+      fontSize: type.body,
+      fill: color.text.warning,
       align: 'center',
       wordWrap: true,
       wordWrapWidth: 260
@@ -341,7 +337,7 @@ class JoinGamePanel extends PIXI.Container {
     
     // Show success state
     this.statusText.text = '✅ Joined game successfully!';
-    this.statusText.style.fill = '#4CAF50';
+    this.statusText.style.fill = color.state.success;
     
     // Success animation
     gsap.to(this.statusText, {
@@ -366,7 +362,7 @@ class JoinGamePanel extends PIXI.Container {
     
     // Show error state
     this.statusText.text = `❌ ${error}`;
-    this.statusText.style.fill = '#ff4444';
+    this.statusText.style.fill = color.state.danger;
     
     // Error shake animation
     gsap.to(this, {
@@ -390,7 +386,7 @@ class JoinGamePanel extends PIXI.Container {
   onConnectionLost() {
     this.stopLoading();
     this.statusText.text = '🔌 Connection lost...';
-    this.statusText.style.fill = '#ff8844';
+    this.statusText.style.fill = color.state.connectionWarning;
     this.gameIdInput.setEnabled(false);
     this.joinButton.setEnabled(false);
   }
@@ -401,7 +397,7 @@ class JoinGamePanel extends PIXI.Container {
   onConnectionRestored() {
     this.resetToIdle();
     this.statusText.text = '🔌 Connected!';
-    this.statusText.style.fill = '#4CAF50';
+    this.statusText.style.fill = color.state.success;
     
     // Clear status after a moment
     setTimeout(() => {
@@ -439,7 +435,7 @@ class JoinGamePanel extends PIXI.Container {
     
     // Clear status
     this.statusText.text = '';
-    this.statusText.style.fill = '#ffdd44';
+    this.statusText.style.fill = color.text.warning;
     this.statusText.scale.set(1);
   }
 

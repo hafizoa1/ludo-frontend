@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js';
 import Button from './Button';
+import { color, radius, type, fontFamily } from '../../design/tokens';
 
 /**
  * ConfirmDialog - Custom styled confirmation dialog
@@ -28,9 +29,8 @@ class ConfirmDialog extends PIXI.Container {
   createDialog() {
     // Semi-transparent background overlay
     this.overlay = new PIXI.Graphics();
-    this.overlay.beginFill(0x000000, 0.7);
-    this.overlay.drawRect(0, 0, this.options.canvasWidth, this.options.canvasHeight);
-    this.overlay.endFill();
+    this.overlay.rect(0, 0, this.options.canvasWidth, this.options.canvasHeight);
+    this.overlay.fill({ color: 0x000000, alpha: 0.7 });
     this.overlay.interactive = true;
     this.overlay.on('pointerdown', (e) => e.stopPropagation());
     this.addChild(this.overlay);
@@ -40,19 +40,18 @@ class ConfirmDialog extends PIXI.Container {
     const dialogY = (this.options.canvasHeight - this.options.height) / 2;
 
     this.dialog = new PIXI.Graphics();
-    this.dialog.beginFill(0x2a2a2a);
-    this.dialog.lineStyle(3, 0x444444);
-    this.dialog.drawRoundedRect(0, 0, this.options.width, this.options.height, 10);
-    this.dialog.endFill();
+    this.dialog.roundRect(0, 0, this.options.width, this.options.height, radius.md);
+    this.dialog.fill({ color: color.bg.panel });
+    this.dialog.stroke({ color: color.border.subtle, width: 3 });
     this.dialog.x = dialogX;
     this.dialog.y = dialogY;
     this.addChild(this.dialog);
 
     // Title
     this.titleText = new PIXI.Text(this.options.title, {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 24,
-      fill: '#ffffff',
+      fontFamily,
+      fontSize: type.heading,
+      fill: color.text.primary,
       fontWeight: 'bold',
       align: 'center'
     });
@@ -63,9 +62,9 @@ class ConfirmDialog extends PIXI.Container {
 
     // Message
     this.messageText = new PIXI.Text(this.options.message, {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 16,
-      fill: '#cccccc',
+      fontFamily,
+      fontSize: type.label,
+      fill: color.text.secondary,
       align: 'center',
       wordWrap: true,
       wordWrapWidth: this.options.width - 40
@@ -85,10 +84,8 @@ class ConfirmDialog extends PIXI.Container {
       text: this.options.cancelText,
       width: buttonWidth,
       height: 40,
-      backgroundColor: 0x555555,
-      hoverColor: 0x666666,
-      pressedColor: 0x444444,
-      fontSize: 14
+      variant: 'neutral',
+      fontSize: type.body
     });
     this.cancelButton.x = dialogX + 30;
     this.cancelButton.y = buttonY;
@@ -100,10 +97,8 @@ class ConfirmDialog extends PIXI.Container {
       text: this.options.confirmText,
       width: buttonWidth,
       height: 40,
-      backgroundColor: 0xff4444,
-      hoverColor: 0xcc3333,
-      pressedColor: 0x992222,
-      fontSize: 14
+      variant: 'danger',
+      fontSize: type.body
     });
     this.confirmButton.x = dialogX + 30 + buttonWidth + buttonSpacing;
     this.confirmButton.y = buttonY;
@@ -132,9 +127,8 @@ class ConfirmDialog extends PIXI.Container {
   updateLayout(width, height) {
     // Update overlay size
     this.overlay.clear();
-    this.overlay.beginFill(0x000000, 0.7);
-    this.overlay.drawRect(0, 0, width, height);
-    this.overlay.endFill();
+    this.overlay.rect(0, 0, width, height);
+    this.overlay.fill({ color: 0x000000, alpha: 0.7 });
 
     // Recenter dialog
     const dialogX = (width - this.options.width) / 2;

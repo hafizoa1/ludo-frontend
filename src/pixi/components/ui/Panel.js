@@ -1,6 +1,17 @@
 // src/pixi/components/ui/Panel.js
 
 import * as PIXI from 'pixi.js';
+import { color, radius } from '../../design/tokens';
+
+// Named presets - a caller picks one instead of passing bg/border/radius
+// individually. Explicit options still override a preset's values, so
+// specificity only happens where a caller has a real reason for it.
+const VARIANTS = {
+  default: { backgroundColor: color.bg.panel, borderColor: color.border.subtle, cornerRadius: radius.md },
+  create: { backgroundColor: color.context.create.bg, borderColor: color.context.create.border, cornerRadius: radius.lg },
+  join: { backgroundColor: color.context.join.bg, borderColor: color.context.join.border, cornerRadius: radius.lg },
+  waiting: { backgroundColor: color.context.waiting.bg, borderColor: color.context.waiting.border, cornerRadius: radius.lg }
+};
 
 /**
  * Panel - Reusable background panel with styling options
@@ -8,19 +19,21 @@ import * as PIXI from 'pixi.js';
 class Panel extends PIXI.Graphics {
   constructor(options = {}) {
     super();
-    
+
+    const preset = VARIANTS[options.variant] || VARIANTS.default;
+
     // Default options
     this.options = {
       width: 200,
       height: 150,
-      backgroundColor: 0x2a2a2a,
-      borderColor: 0x4a4a4a,
+      backgroundColor: preset.backgroundColor,
+      borderColor: preset.borderColor,
       borderWidth: 2,
-      cornerRadius: 10,
+      cornerRadius: preset.cornerRadius,
       alpha: 1,
       ...options
     };
-    
+
     this.createPanel();
   }
 
@@ -29,21 +42,13 @@ class Panel extends PIXI.Graphics {
    */
   createPanel() {
     this.clear();
-    
-    // Set border style if needed
+
+    this.roundRect(0, 0, this.options.width, this.options.height, this.options.cornerRadius);
+    this.fill({ color: this.options.backgroundColor, alpha: this.options.alpha });
+
     if (this.options.borderWidth > 0) {
-      this.lineStyle(this.options.borderWidth, this.options.borderColor, 1);
+      this.stroke({ color: this.options.borderColor, width: this.options.borderWidth });
     }
-    
-    // Draw background
-    this.beginFill(this.options.backgroundColor, this.options.alpha);
-    this.drawRoundedRect(
-      0, 0,
-      this.options.width,
-      this.options.height,
-      this.options.cornerRadius
-    );
-    this.endFill();
   }
 
   /**

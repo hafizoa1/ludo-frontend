@@ -5,6 +5,7 @@ import { gsap } from 'gsap';
 import eventBus from '../../../utils/EventBus';
 import Button from '../ui/Button';
 import Panel from '../ui/Panel';
+import { color, type, fontFamily } from '../../design/tokens';
 
 /**
  * CreateGamePanel - Animated panel for creating new games
@@ -33,12 +34,10 @@ class CreateGamePanel extends PIXI.Container {
   setupPanel() {
     // Create background panel
     this.panel = new Panel({
+      variant: 'create',
       width: 300,
       height: 400,
-      backgroundColor: 0x2a2a4a,
-      borderColor: 0x4a4a6a,
-      borderWidth: 3,
-      cornerRadius: 20
+      borderWidth: 3
     });
     this.addChild(this.panel);
 
@@ -53,11 +52,8 @@ class CreateGamePanel extends PIXI.Container {
       text: 'Create New Game',
       width: 200,
       height: 60,
-      backgroundColor: 0x4CAF50,
-      hoverColor: 0x45a049,
-      textColor: 0xFFFFFF,
-      fontSize: 18,
-      cornerRadius: 10
+      variant: 'success',
+      fontSize: type.heading
     });
     this.createButton.x = 50;
     this.createButton.y = 250;
@@ -83,10 +79,10 @@ class CreateGamePanel extends PIXI.Container {
    */
   createTitle() {
     const titleStyle = new PIXI.TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 28,
+      fontFamily,
+      fontSize: type.title,
       fontWeight: 'bold',
-      fill: '#ffffff',
+      fill: color.text.primary,
       align: 'center'
     });
 
@@ -102,9 +98,9 @@ class CreateGamePanel extends PIXI.Container {
    */
   createDescription() {
     const descStyle = new PIXI.TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 16,
-      fill: '#cccccc',
+      fontFamily,
+      fontSize: type.label,
+      fill: color.text.secondary,
       align: 'center',
       wordWrap: true,
       wordWrapWidth: 260
@@ -125,8 +121,8 @@ class CreateGamePanel extends PIXI.Container {
    */
   createLoadingSpinner() {
     this.loadingSpinner = new PIXI.Graphics();
-    this.loadingSpinner.lineStyle(4, 0x4CAF50, 1);
     this.loadingSpinner.arc(0, 0, 20, 0, Math.PI * 1.5);
+    this.loadingSpinner.stroke({ color: color.state.success, width: 4 });
     this.loadingSpinner.x = 150;
     this.loadingSpinner.y = 280;
     this.loadingSpinner.visible = false;
@@ -147,9 +143,9 @@ class CreateGamePanel extends PIXI.Container {
    */
   createStatusText() {
     const statusStyle = new PIXI.TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 14,
-      fill: '#ffdd44',
+      fontFamily,
+      fontSize: type.body,
+      fill: color.text.warning,
       align: 'center',
       wordWrap: true,
       wordWrapWidth: 260
@@ -277,7 +273,7 @@ class CreateGamePanel extends PIXI.Container {
     
     // Show success state
     this.statusText.text = '✅ Game created successfully!';
-    this.statusText.style.fill = '#4CAF50';
+    this.statusText.style.fill = color.state.success;
     
     // Success animation
     gsap.to(this.statusText, {
@@ -302,7 +298,7 @@ class CreateGamePanel extends PIXI.Container {
     
     // Show error state
     this.statusText.text = `❌ ${error}`;
-    this.statusText.style.fill = '#ff4444';
+    this.statusText.style.fill = color.state.danger;
     
     // Error shake animation
     gsap.to(this, {
@@ -326,7 +322,7 @@ class CreateGamePanel extends PIXI.Container {
   onConnectionLost() {
     this.stopLoading();
     this.statusText.text = '🔌 Connection lost...';
-    this.statusText.style.fill = '#ff8844';
+    this.statusText.style.fill = color.state.connectionWarning;
     this.createButton.setEnabled(false);
   }
 
@@ -336,7 +332,7 @@ class CreateGamePanel extends PIXI.Container {
   onConnectionRestored() {
     this.resetToIdle();
     this.statusText.text = '🔌 Connected!';
-    this.statusText.style.fill = '#4CAF50';
+    this.statusText.style.fill = color.state.success;
     
     // Clear status after a moment
     setTimeout(() => {
@@ -373,7 +369,7 @@ class CreateGamePanel extends PIXI.Container {
     
     // Clear status
     this.statusText.text = '';
-    this.statusText.style.fill = '#ffdd44';
+    this.statusText.style.fill = color.text.warning;
     this.statusText.scale.set(1);
   }
 

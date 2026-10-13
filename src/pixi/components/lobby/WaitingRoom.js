@@ -4,6 +4,7 @@ import * as PIXI from 'pixi.js';
 import { gsap } from 'gsap';
 import eventBus from '../../../utils/EventBus';
 import Panel from '../ui/Panel';
+import { color, radius, type, fontFamily } from '../../design/tokens';
 
 // Must match the backend's game.join-timeout-seconds (default 300, see
 // GameManager) - there's no single source of truth for this yet, since the
@@ -43,12 +44,10 @@ class WaitingRoom extends PIXI.Container {
   setupRoom() {
     // Create background panel
     this.panel = new Panel({
+      variant: 'waiting',
       width: 600,
       height: 300,
-      backgroundColor: 0x3a2a4a,
-      borderColor: 0x6a4a7a,
-      borderWidth: 3,
-      cornerRadius: 20
+      borderWidth: 3
     });
     this.addChild(this.panel);
 
@@ -73,10 +72,10 @@ class WaitingRoom extends PIXI.Container {
    */
   createTitle() {
     const titleStyle = new PIXI.TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 32,
+      fontFamily,
+      fontSize: type.display,
       fontWeight: 'bold',
-      fill: '#ffffff',
+      fill: color.text.primary,
       align: 'center'
     });
 
@@ -92,10 +91,10 @@ class WaitingRoom extends PIXI.Container {
    */
   createGameIdDisplay() {
     const gameIdStyle = new PIXI.TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 24,
+      fontFamily,
+      fontSize: type.heading,
       fontWeight: 'bold',
-      fill: '#ffdd44',
+      fill: color.text.warning,
       align: 'center'
     });
 
@@ -121,9 +120,9 @@ class WaitingRoom extends PIXI.Container {
    */
   createStatusText() {
     const statusStyle = new PIXI.TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 18,
-      fill: '#cccccc',
+      fontFamily,
+      fontSize: type.label,
+      fill: color.text.secondary,
       align: 'center'
     });
 
@@ -140,9 +139,9 @@ class WaitingRoom extends PIXI.Container {
    */
   createCountdownText() {
     const countdownStyle = new PIXI.TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 16,
-      fill: '#ffdd44',
+      fontFamily,
+      fontSize: type.label,
+      fill: color.text.warning,
       align: 'center'
     });
 
@@ -259,17 +258,16 @@ class WaitingRoom extends PIXI.Container {
 
     // Player background
     const bg = new PIXI.Graphics();
-    bg.beginFill(0x4a4a6a);
-    bg.drawRoundedRect(0, 0, 250, 60, 10);
-    bg.endFill();
+    bg.roundRect(0, 0, 250, 60, radius.sm);
+    bg.fill({ color: color.border.subtle });
     card.addChild(bg);
 
     // Player name
     const nameStyle = new PIXI.TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 18,
+      fontFamily,
+      fontSize: type.label,
       fontWeight: 'bold',
-      fill: '#ffffff'
+      fill: color.text.primary
     });
 
     const nameText = new PIXI.Text(player.playerName || `Player ${index + 1}`, nameStyle);
@@ -279,12 +277,10 @@ class WaitingRoom extends PIXI.Container {
 
     // Player colors
     if (player.colors) {
-      player.colors.forEach((color, colorIndex) => {
+      player.colors.forEach((playerColor, colorIndex) => {
         const colorCircle = new PIXI.Graphics();
-        const pixiColor = this.getPixiColor(color);
-        colorCircle.beginFill(pixiColor);
-        colorCircle.drawCircle(0, 0, 8);
-        colorCircle.endFill();
+        colorCircle.circle(0, 0, 8);
+        colorCircle.fill({ color: this.getPixiColor(playerColor) });
         colorCircle.x = 15 + (colorIndex * 25);
         colorCircle.y = 40;
         card.addChild(colorCircle);
@@ -292,11 +288,10 @@ class WaitingRoom extends PIXI.Container {
     }
 
     // Connection status
-    const statusColor = player.human ? 0x4CAF50 : 0x888888;
+    const statusColor = player.human ? color.state.success : color.state.neutralHover;
     const statusCircle = new PIXI.Graphics();
-    statusCircle.beginFill(statusColor);
-    statusCircle.drawCircle(0, 0, 5);
-    statusCircle.endFill();
+    statusCircle.circle(0, 0, 5);
+    statusCircle.fill({ color: statusColor });
     statusCircle.x = 220;
     statusCircle.y = 15;
     card.addChild(statusCircle);
@@ -320,12 +315,12 @@ class WaitingRoom extends PIXI.Container {
    */
   getPixiColor(colorString) {
     const colorMap = {
-      'RED': 0xFF4444,
-      'BLUE': 0x4444FF,
-      'GREEN': 0x44FF44,
-      'YELLOW': 0xFFFF44
+      RED: color.player.red,
+      BLUE: color.player.blue,
+      GREEN: color.player.green,
+      YELLOW: color.player.yellow
     };
-    return colorMap[colorString] || 0xFFFFFF;
+    return colorMap[colorString] || color.text.primary;
   }
 
   /**
