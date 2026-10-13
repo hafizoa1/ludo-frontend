@@ -504,15 +504,25 @@ class PiecesContainer extends PIXI.Container {
     const numHops = Math.max(1, path.length - 1);
     const hopDuration = Math.min(baseHopDuration, totalDurationCap / numHops);
 
-    // Animate each step with a hop
+    // Animate each step with a hop. x tweens across the *whole* hop in one
+    // continuous motion; y is layered on top as its own up-then-down arc.
+    // These used to be one combined x+y tween for the first half and a
+    // y-only tween for the second - x reached its target at the halfway
+    // point and sat still while y finished catching up, so a multi-step
+    // move stuttered to a stop and restarted at every single cell.
     path.forEach((point, index) => {
       if (index === 0) return; // Skip starting point
 
       const startTime = (index - 1) * hopDuration;
 
-      // Hop arc: up and forward, then down
       timeline.to(piece, {
         x: point.x,
+        duration: hopDuration,
+        ease: "power1.inOut"
+      }, startTime);
+
+      // Hop arc: up, then down - overlapping the x glide above.
+      timeline.to(piece, {
         y: point.y - hopHeight,
         duration: hopDuration * 0.5,
         ease: "power1.out"
