@@ -1,7 +1,6 @@
 import * as PIXI from 'pixi.js';
 import BoardComponent from '../../../components/game/BoardComponent';
 import PiecesContainer from '../../../components/game/PiecesContainer';
-import MoveManager from '../../../components/game/MoveManager';
 import PieceMoveMenu from '../../../components/game/PieceMoveMenu';
 
 /**
@@ -16,10 +15,10 @@ class GameBoardContainer extends PIXI.Container {
     
     this.board = null;
     this.pieces = null;
-    this.moveManager = null;
     this.pieceMoveMenu = null;
     this.movesByPiece = {};
     this.pendingCaptureMove = null;
+    this.isAnimating = false;
     
     this.createComponents();
     this.setupEventListeners();
@@ -56,21 +55,6 @@ class GameBoardContainer extends PIXI.Container {
     this.pieces.x = boardLayout.x;
     this.pieces.y = boardLayout.y;
     this.addChild(this.pieces);
-
-    // Create move manager
-    // Pass an object with selectPiece method so MoveManager can send moves
-    const gameSceneProxy = {
-      selectPiece: (pieceIndex) => {
-        this.stateCoordinator.selectPiece(pieceIndex);
-      }
-    };
-
-    this.moveManager = new MoveManager({
-      gameScene: gameSceneProxy,
-      boardComponent: this.board,
-      piecesContainer: this.pieces
-    });
-    this.addChild(this.moveManager);
 
     this.pieceMoveMenu = new PieceMoveMenu({
       onSelect: (move) => this.chooseMove(move)
@@ -128,7 +112,7 @@ class GameBoardContainer extends PIXI.Container {
 
     // Handle animation state changes
     this.stateCoordinator.on('pieces:animationStateChanged', (data) => {
-      this.moveManager.setAnimationState(data.isAnimating);
+      this.isAnimating = data.isAnimating;
     });
 
     // Handle turn changes
@@ -231,7 +215,6 @@ class GameBoardContainer extends PIXI.Container {
   destroy(options) {
     if (this.board) this.board.destroy();
     if (this.pieces) this.pieces.destroy();
-    if (this.moveManager) this.moveManager.destroy();
     if (this.pieceMoveMenu) this.pieceMoveMenu.destroy();
     super.destroy(options);
   }

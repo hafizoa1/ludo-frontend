@@ -154,34 +154,16 @@ export function calculateScaleFactor(viewportWidth, viewportHeight) {
 /**
  * Calculate scaled dimensions for board
  */
-/**
- * Calculate scaled dimensions for board
- */
 export function getScaledBoardLayout(viewportWidth, viewportHeight) {
   const scale = calculateScaleFactor(viewportWidth, viewportHeight);
-  
-  // --- New Logic for Centering ---
+
   const scaledGameWidth = LAYOUT_CONFIG.base.width * scale;
-  const xOffset = Math.max(0, (viewportWidth - scaledGameWidth) / 2); // Calculate margin and divide by 2
-  // -------------------------------
-  
+  const xOffset = Math.max(0, (viewportWidth - scaledGameWidth) / 2);
+
   const scaledSize = LAYOUT_CONFIG.board.baseSize * scale;
   const scaledX = LAYOUT_CONFIG.board.baseX * scale;
   const scaledY = LAYOUT_CONFIG.board.baseY * scale;
 
-  // --- DEBUG LOGGING ---
-  console.group("Layout Debug");
-  console.log("Viewport (Input):", { width: viewportWidth, height: viewportHeight });
-  console.log("Calculated Scale:", scale.toFixed(3));
-  console.log("Scaled Game Width:", scaledGameWidth.toFixed(0));
-  console.log("CalculRequest (Input):", { width: viewportWidth, height: viewportHeight });
-  console.log("Calculated Scale:", scale.toFixed(3));
-  console.log("Scaled Game Width:", scaledGameWidth.toFixed(0));
-  console.log("Calculated xOffset:", xOffset.toFixed(0));
-  console.log("Final Board X (baseX * scale + xOffset):", (scaledX + xOffset).toFixed(0));
-  console.groupEnd();
-  // --- END DEBUG ---
-  
   return {
     size: Math.min(scaledSize, LAYOUT_CONFIG.maxDimensions.boardSize),
     // APPLY OFFSET HERE

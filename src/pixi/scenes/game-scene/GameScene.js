@@ -132,8 +132,8 @@ class GameScene extends PIXI.Container {
       isMyTurn: this.stateCoordinator.isMyTurn(),
       gameState: this.stateCoordinator.getCurrentState(),
       connectionStatus: this.connectionHandler.getStatus(),
-      layoutMode: this.layoutManager.isSmallScreen() ? 'small' : 
-            this.layoutManager.isLargeScreen() ? 'large' : 'normal'
+      layoutMode: this.layoutManager.isMobile() ? 'mobile' :
+            this.layoutManager.isTablet() ? 'tablet' : 'desktop'
     };
   }
 
