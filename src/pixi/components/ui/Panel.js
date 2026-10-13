@@ -17,7 +17,7 @@ const VARIANTS = {
 /**
  * Panel - Reusable background panel with styling options
  */
-class Panel extends PIXI.Graphics {
+class Panel extends PIXI.Container {
   constructor(options = {}) {
     super();
 
@@ -35,6 +35,16 @@ class Panel extends PIXI.Graphics {
       ...options
     };
 
+    // The drawn rect lives on a child Graphics, not on this Container
+    // itself - cacheAsTexture (in createPanel(), below) turns `this` into
+    // a render group whose cached texture only ever captures its
+    // CHILDREN's content, never content a Graphics draws on itself. A
+    // Panel that extended Graphics directly and cached itself rendered
+    // as an invisible panel - the fill/stroke commands were issued, just
+    // never actually captured into the cache.
+    this.background = new PIXI.Graphics();
+    this.addChild(this.background);
+
     this.createPanel();
   }
 
@@ -42,13 +52,13 @@ class Panel extends PIXI.Graphics {
    * Create the panel graphics
    */
   createPanel() {
-    this.clear();
+    this.background.clear();
 
-    this.roundRect(0, 0, this.options.width, this.options.height, this.options.cornerRadius);
-    this.fill({ color: this.options.backgroundColor, alpha: this.options.alpha });
+    this.background.roundRect(0, 0, this.options.width, this.options.height, this.options.cornerRadius);
+    this.background.fill({ color: this.options.backgroundColor, alpha: this.options.alpha });
 
     if (this.options.borderWidth > 0) {
-      this.stroke({ color: this.options.borderColor, width: this.options.borderWidth });
+      this.background.stroke({ color: this.options.borderColor, width: this.options.borderWidth });
     }
 
     // Flat, non-reactive shadow - callers only ever tween this panel's own
