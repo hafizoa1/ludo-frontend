@@ -13,6 +13,8 @@ import {
  * LayoutManager - Proportional Scaling with Original Interface
  * Same method names as before, but now uses proportional scaling internally
  */
+const DEBUG = process.env.NODE_ENV === 'development';
+
 class LayoutManager {
   constructor(viewport) {
     // Use the passed viewport dimensions (base design dimensions)
@@ -22,11 +24,10 @@ class LayoutManager {
       height: viewport.height || 800
     };
     this.scaleFactor = 1;
-    this.boardBounds = null;
 
     this.updateScaleFactor();
 
-    console.log('📐 LayoutManager initialized:', getScaleDebugInfo(this.viewport.width, this.viewport.height));
+    if (DEBUG) console.log('LayoutManager initialized:', getScaleDebugInfo(this.viewport.width, this.viewport.height));
   }
 
   /**
@@ -35,8 +36,8 @@ class LayoutManager {
   updateViewport(width, height) {
     this.viewport = { width, height };
     this.updateScaleFactor();
-    
-    console.log('📐 LayoutManager viewport updated:', getScaleDebugInfo(width, height));
+
+    if (DEBUG) console.log('LayoutManager viewport updated:', getScaleDebugInfo(width, height));
   }
 
   /**
@@ -59,17 +60,7 @@ class LayoutManager {
    */
   getBoardLayout() {
     const layout = getScaledBoardLayout(this.viewport.width, this.viewport.height);
-    
-    // Calculate and store board bounds for other components
-    this.boardBounds = {
-      left: layout.x,
-      right: layout.x + layout.size,
-      top: layout.y,
-      bottom: layout.y + layout.size,
-      centerX: layout.x + (layout.size / 2),
-      centerY: layout.y + (layout.size / 2)
-    };
-    
+
     return {
       size: layout.size,
       x: layout.x,
@@ -100,23 +91,6 @@ class LayoutManager {
    */
   getUILayout() {
     return getScaledUILayout(this.viewport.width, this.viewport.height);
-  }
-
-  /**
-   * Get board bounds (useful for relative positioning)
-   */
-  getBoardBounds() {
-    if (!this.boardBounds) {
-      this.getBoardLayout(); // Calculate if not already done
-    }
-    return this.boardBounds;
-  }
-
-  /**
-   * Set board bounds (called by components after board is positioned)
-   */
-  setBoardBounds(bounds) {
-    this.boardBounds = bounds;
   }
 
   /**
@@ -163,29 +137,6 @@ class LayoutManager {
    */
   isPortrait() {
     return isPortraitViewport(this.viewport.width, this.viewport.height);
-  }
-
-  /**
-   * Get debug information
-   */
-  getDebugInfo() {
-    return {
-      ...getScaleDebugInfo(this.viewport.width, this.viewport.height),
-      boardBounds: this.boardBounds
-    };
-  }
-
-  /**
-   * Log current layout state (for debugging)
-   */
-  logLayoutState() {
-    const debug = this.getDebugInfo();
-    console.log('📐 Layout State:', {
-      viewport: debug.viewport,
-      scale: debug.scale,
-      boardSize: `${LAYOUT_CONFIG.board.baseSize}px → ${debug.scaledSize}px`,
-      change: debug.percentageChange
-    });
   }
 }
 

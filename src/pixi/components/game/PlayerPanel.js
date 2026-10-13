@@ -520,38 +520,6 @@ class PlayerPanel extends PIXI.Container {
   }
 
   /**
-   * Animate panel entrance
-   */
-  animateEntrance() {
-    // Start from the side and slide in
-    const startX = this.x;
-    this.x = this.color === 'red' || this.color === 'yellow' ? -this.width : 1200;
-    this.alpha = 0;
-    
-    gsap.to(this, {
-      x: startX,
-      alpha: 1,
-      duration: 0.8,
-      ease: "power2.out"
-    });
-    
-    // Animate pieces indicators
-    for (let i = 0; i < 4; i++) {
-      const indicator = this.piecesStatusContainer.getChildByName(`piece_${i}`);
-      if (indicator) {
-        indicator.scale.set(0);
-        gsap.to(indicator.scale, {
-          x: 1,
-          y: 1,
-          duration: 0.4,
-          delay: 0.5 + i * 0.1,
-          ease: "back.out(1.7)"
-        });
-      }
-    }
-  }
-
-  /**
    * Show win celebration
    */
   showWinCelebration() {

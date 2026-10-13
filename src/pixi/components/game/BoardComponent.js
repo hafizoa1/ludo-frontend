@@ -1,7 +1,6 @@
 
 import * as PIXI from 'pixi.js';
 import { BOARD_CONFIG, gridToPixel, backendToPixel } from '../../utils/coordinateUtils';
-import gsap from 'gsap';
 import { applyElevation } from '../../design/depth';
 
 /**
@@ -27,9 +26,8 @@ class BoardComponent extends PIXI.Container {
 
     this.createBoard();
 
-    // Everything inside is drawn once in createBoard() and never redrawn -
-    // highlightCell()/animateEntrance() are dead code with no callers, so
-    // nothing here needs updateCacheTexture() after this point.
+    // Everything inside is drawn once in createBoard() and never redrawn,
+    // so nothing here needs updateCacheTexture() after this point.
     applyElevation(this, 2);
   }
 
@@ -524,35 +522,6 @@ createGamePath() {
   }
 
   /**
-   * Highlight a specific cell
-   */
-  highlightCell(gridX, gridY, color = 0xffff00, alpha = 0.5) {
-    const highlight = new PIXI.Graphics();
-    highlight.rect(
-      gridX * this.cellSize,
-      gridY * this.cellSize,
-      this.cellSize,
-      this.cellSize
-    );
-    highlight.fill({ color, alpha });
-    highlight.name = 'highlight';
-    
-    this.addChild(highlight);
-    return highlight;
-  }
-
-  /**
-   * Clear all highlights
-   */
-  clearHighlights() {
-    const highlights = this.children.filter(child => child.name === 'highlight');
-    highlights.forEach(highlight => {
-      this.removeChild(highlight);
-      highlight.destroy();
-    });
-  }
-
-  /**
    * Get cell at pixel coordinates
    */
   getCellAtPosition(x, y) {
@@ -567,42 +536,6 @@ createGamePath() {
    */
   getGridPosition(localX, localY) {
     return this.getCellAtPosition(localX, localY);
-  }
-
-  /**
-   * Animate board entrance
-   */
-  animateEntrance() {
-    // Board slides up from bottom
-    this.y = 200;
-    this.alpha = 0;
-    
-    gsap.to(this, {
-      y: 0,
-      alpha: 1,
-      duration: 1,
-      ease: "power2.out"
-    });
-    
-    // Animate home areas one by one
-    this.homeAreas.forEach((area, index) => {
-      area.alpha = 0;
-      area.scale.set(0);
-      
-      gsap.to(area, {
-        alpha: 1,
-        duration: 0.5,
-        delay: 0.2 + index * 0.1
-      });
-      
-      gsap.to(area.scale, {
-        x: 1,
-        y: 1,
-        duration: 0.6,
-        delay: 0.2 + index * 0.1,
-        ease: "back.out(1.7)"
-      });
-    });
   }
 
   /**

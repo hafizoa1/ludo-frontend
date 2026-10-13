@@ -60,9 +60,6 @@ class GameBoardContainer extends PIXI.Container {
       onSelect: (move) => this.chooseMove(move)
     });
     this.addChild(this.pieceMoveMenu);
-
-    // Update board bounds for layout manager
-    this.updateBoardBounds(boardLayout);
   }
 
   /**
@@ -170,19 +167,6 @@ class GameBoardContainer extends PIXI.Container {
   }
 
   /**
-   * Update board bounds for layout calculations
-   */
-  updateBoardBounds(boardLayout) {
-    const bounds = {
-      left: boardLayout.x - (boardLayout.size / 10),
-      right: boardLayout.x + (boardLayout.size / 2),
-      top: boardLayout.y - (boardLayout.size / 2),
-      bottom: boardLayout.y + (boardLayout.size / 2)
-    };
-    this.layout.setBoardBounds(bounds);
-  }
-
-  /**
    * Update layout. The board/pieces draw their geometry once at
    * construction (native size 600, see layout.config.js's board.baseSize)
    * - rebuilding that geometry on every resize isn't necessary, scaling
@@ -204,8 +188,6 @@ class GameBoardContainer extends PIXI.Container {
       this.pieces.y = boardLayout.y;
       this.pieces.scale.set(boardLayout.size / this.pieces.boardSize);
     }
-
-    this.updateBoardBounds(boardLayout);
   }
 
   /**
