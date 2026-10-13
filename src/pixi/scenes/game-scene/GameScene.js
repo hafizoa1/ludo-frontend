@@ -114,14 +114,18 @@ class GameScene extends PIXI.Container {
   }
 
   /**
-   * Handle window resize
+   * Handle window resize. width/height are design-space dimensions (see
+   * PixiApp.setupResponsiveCanvas) - always 1200x800 in landscape (stage
+   * scaling handles the real fit), the real viewport in portrait (the
+   * stage isn't letterboxed there, so layout has to reflow for real).
    */
-  onResize(width, height, scale) {
-    // PixiApp handles stage scaling, so we keep using base dimensions
-    // this.layoutManager.updateViewport(width, height);
+  onResize(width, height) {
+    this.layoutManager.updateViewport(width, height);
 
-    // No need to update layouts - PixiApp stage scaling handles responsiveness
-    // Components use fixed 1200x800 coordinate space
+    this.gameUI?.updateLayout();
+    this.boardContainer?.updateLayout();
+    this.playerArea?.updateLayout();
+    this.controlsContainer?.updateLayout();
   }
 
   /**

@@ -100,12 +100,14 @@ export interface EventMap {
 
   // PixiJS infrastructure
   'pixi.initialized': { app: unknown };
+  // width/height are the design-space dimensions LayoutManager should use
+  // (always 1200x800 in landscape; the real viewport in portrait, where
+  // the stage isn't letterboxed) - not necessarily the renderer's actual
+  // pixel size.
   'pixi.resize': {
     width: number;
     height: number;
-    scale: number;
-    baseWidth: number;
-    baseHeight: number;
+    isPortrait: boolean;
     dpi: number;
   };
   'pixi.destroyed': undefined;

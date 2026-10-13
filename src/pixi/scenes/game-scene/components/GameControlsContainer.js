@@ -215,11 +215,13 @@ class GameControlsContainer extends PIXI.Container {
   updateLayout() {
     const diceLayout = this.layout.getDiceLayout();
     const uiLayout = this.layout.getUILayout();
-    const scaleFactor = this.layout.getScaleFactor();
+    const isPortrait = this.layout.isPortrait();
+    const viewport = this.layout.viewport || { width: window.innerWidth, height: window.innerHeight };
 
     if (this.dice) {
       this.dice.x = diceLayout.x;
       this.dice.y = diceLayout.y;
+      this.dice.scale.set(diceLayout.size / this.dice.size);
     }
 
     if (this.turnText) {
@@ -229,21 +231,30 @@ class GameControlsContainer extends PIXI.Container {
     }
 
     if (this.leaveButton) {
-      this.leaveButton.x = 20 * scaleFactor;
-      this.leaveButton.y = 20 * scaleFactor;
-      // Update button size
-      this.leaveButton.options.width = 120 * scaleFactor;
-      this.leaveButton.options.height = 40 * scaleFactor;
-      this.leaveButton.options.fontSize = Math.max(12, 14 * scaleFactor);
+      if (isPortrait) {
+        // scaleFactor is landscape-only math (percent of a 1200-wide
+        // design) - meaningless against a real narrow viewport. A small
+        // fixed corner button fits the portrait top bar instead.
+        this.leaveButton.x = viewport.width - 102;
+        this.leaveButton.y = 10;
+        this.leaveButton.options.width = 90;
+        this.leaveButton.options.height = 32;
+        this.leaveButton.options.fontSize = 12;
+      } else {
+        const scaleFactor = this.layout.getScaleFactor();
+        this.leaveButton.x = 20 * scaleFactor;
+        this.leaveButton.y = 20 * scaleFactor;
+        this.leaveButton.options.width = 120 * scaleFactor;
+        this.leaveButton.options.height = 40 * scaleFactor;
+        this.leaveButton.options.fontSize = Math.max(12, 14 * scaleFactor);
+      }
       // Redraw button with new size
       this.leaveButton.createButton();
     }
 
     // Update confirm dialog layout
     if (this.confirmDialog) {
-      const canvasWidth = this.layout.viewport?.width || window.innerWidth;
-      const canvasHeight = this.layout.viewport?.height || window.innerHeight;
-      this.confirmDialog.updateLayout(canvasWidth, canvasHeight);
+      this.confirmDialog.updateLayout(viewport.width, viewport.height);
     }
   }
 

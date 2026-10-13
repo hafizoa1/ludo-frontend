@@ -58,6 +58,20 @@ class Button extends PIXI.Container {
    * Create button graphics
    */
   createButton() {
+    // Calling this again (e.g. GameControlsContainer.updateLayout on a
+    // resize) used to just addChild a second background+label on top of
+    // the first, forever - this was reachable the moment updateLayout
+    // actually started getting called, since it redraws the leave button
+    // on every resize.
+    if (this.background) {
+      this.removeChild(this.background);
+      this.background.destroy();
+    }
+    if (this.label) {
+      this.removeChild(this.label);
+      this.label.destroy();
+    }
+
     // Create background
     this.background = new PIXI.Graphics();
     this.drawBackground(this.options.backgroundColor);

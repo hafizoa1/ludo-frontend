@@ -131,6 +131,103 @@ export const LAYOUT_CONFIG = {
   }
 };
 
+// Portrait is a genuinely different arrangement, not the landscape design
+// scaled down - board near the top, panels stacked in a 2x2 grid below it,
+// dice/controls in a bottom bar. Values here are fractions of the REAL
+// viewport (portrait mode runs the stage at scale 1, unletterboxed - see
+// PixiApp.setupResponsiveCanvas), not of the fixed 1200x800 design space.
+const PORTRAIT = {
+  margin: 12,
+  topBarHeight: 56, // title + turn indicator
+  panelRows: 2,
+  panelCols: 2,
+  panelGap: 8,
+  panelHeight: 84,
+  bottomBarHeight: 110, // dice + leave button
+  minBoardSize: 240,
+  minFontSize: 12
+};
+
+/**
+ * Calculate the portrait board's size/position - whatever's left after
+ * the top bar, the panel grid, and the bottom bar take their share.
+ */
+function getPortraitBoardLayout(viewportWidth, viewportHeight) {
+  const panelGridHeight = PORTRAIT.panelRows * PORTRAIT.panelHeight + (PORTRAIT.panelRows - 1) * PORTRAIT.panelGap;
+  const availableHeight = viewportHeight - PORTRAIT.topBarHeight - panelGridHeight - PORTRAIT.bottomBarHeight - PORTRAIT.margin * 2;
+  const availableWidth = viewportWidth - PORTRAIT.margin * 2;
+
+  const size = Math.max(PORTRAIT.minBoardSize, Math.min(availableWidth, availableHeight));
+
+  return {
+    size,
+    x: (viewportWidth - size) / 2,
+    y: PORTRAIT.topBarHeight,
+    gridSize: LAYOUT_CONFIG.board.gridSize
+  };
+}
+
+/**
+ * Portrait dice/leave-button bar, pinned to the bottom.
+ */
+function getPortraitDiceLayout(viewportWidth, viewportHeight) {
+  const size = Math.min(72, PORTRAIT.bottomBarHeight - 24);
+  return {
+    size,
+    x: viewportWidth / 2 - size,
+    y: viewportHeight - PORTRAIT.bottomBarHeight + 12
+  };
+}
+
+/**
+ * Portrait player panels - a 2x2 grid directly below the board, same
+ * fixed row order as landscape's basePositions (red/blue/green/yellow).
+ */
+function getPortraitPlayerPanelsLayout(viewportWidth, viewportHeight) {
+  const boardLayout = getPortraitBoardLayout(viewportWidth, viewportHeight);
+  const gridTop = boardLayout.y + boardLayout.size + PORTRAIT.margin;
+  const panelWidth = (viewportWidth - PORTRAIT.margin * 2 - PORTRAIT.panelGap) / PORTRAIT.panelCols;
+
+  return LAYOUT_CONFIG.playerPanels.basePositions.map((_, index) => {
+    const col = index % PORTRAIT.panelCols;
+    const row = Math.floor(index / PORTRAIT.panelCols);
+    return {
+      x: PORTRAIT.margin + col * (panelWidth + PORTRAIT.panelGap),
+      y: gridTop + row * (PORTRAIT.panelHeight + PORTRAIT.panelGap),
+      width: panelWidth,
+      height: PORTRAIT.panelHeight
+    };
+  });
+}
+
+/**
+ * Portrait UI (title above the board, turn indicator below it) - both
+ * font sizes floored so text never becomes illegible on a narrow screen.
+ */
+function getPortraitUILayout(viewportWidth) {
+  return {
+    title: {
+      x: viewportWidth / 2,
+      y: 16,
+      fontSize: Math.max(PORTRAIT.minFontSize, 18)
+    },
+    turnIndicator: {
+      x: viewportWidth / 2,
+      y: 40,
+      fontSize: Math.max(PORTRAIT.minFontSize, 13)
+    }
+  };
+}
+
+/**
+ * Orientation, not a device-width breakpoint - the actual problem is a
+ * narrow viewport, not "is this a phone". A landscape tablet and a
+ * portrait phone both just need to answer this correctly.
+ */
+export function isPortraitViewport(viewportWidth, viewportHeight) {
+  return viewportWidth < viewportHeight;
+}
+
 /**
  * Calculate scale factor based on viewport
  * This determines how much to scale everything
@@ -155,6 +252,10 @@ export function calculateScaleFactor(viewportWidth, viewportHeight) {
  * Calculate scaled dimensions for board
  */
 export function getScaledBoardLayout(viewportWidth, viewportHeight) {
+  if (isPortraitViewport(viewportWidth, viewportHeight)) {
+    return getPortraitBoardLayout(viewportWidth, viewportHeight);
+  }
+
   const scale = calculateScaleFactor(viewportWidth, viewportHeight);
 
   const scaledGameWidth = LAYOUT_CONFIG.base.width * scale;
@@ -178,6 +279,10 @@ export function getScaledBoardLayout(viewportWidth, viewportHeight) {
  * Calculate scaled dimensions for dice
  */
 export function getScaledDiceLayout(viewportWidth, viewportHeight) {
+  if (isPortraitViewport(viewportWidth, viewportHeight)) {
+    return getPortraitDiceLayout(viewportWidth, viewportHeight);
+  }
+
   const scale = calculateScaleFactor(viewportWidth, viewportHeight);
   
   // --- New Logic for Centering ---
@@ -197,6 +302,10 @@ export function getScaledDiceLayout(viewportWidth, viewportHeight) {
  * Calculate scaled positions for player panels
  */
 export function getScaledPlayerPanelsLayout(viewportWidth, viewportHeight) {
+  if (isPortraitViewport(viewportWidth, viewportHeight)) {
+    return getPortraitPlayerPanelsLayout(viewportWidth, viewportHeight);
+  }
+
   const scale = calculateScaleFactor(viewportWidth, viewportHeight);
   
   // --- New Logic for Centering ---
@@ -217,18 +326,22 @@ export function getScaledPlayerPanelsLayout(viewportWidth, viewportHeight) {
  * Calculate scaled UI elements
  */
 export function getScaledUILayout(viewportWidth, viewportHeight) {
+  if (isPortraitViewport(viewportWidth, viewportHeight)) {
+    return getPortraitUILayout(viewportWidth);
+  }
+
   const scale = calculateScaleFactor(viewportWidth, viewportHeight);
-  
+
   return {
     title: {
       x: viewportWidth / 2,  // Always center
       y: LAYOUT_CONFIG.ui.title.baseY * scale,
-      fontSize: LAYOUT_CONFIG.ui.title.baseFontSize * scale
+      fontSize: Math.max(PORTRAIT.minFontSize, LAYOUT_CONFIG.ui.title.baseFontSize * scale)
     },
     turnIndicator: {
       x: viewportWidth / 2,  // Always center
       y: LAYOUT_CONFIG.ui.turnIndicator.baseY * scale,
-      fontSize: LAYOUT_CONFIG.ui.turnIndicator.baseFontSize * scale
+      fontSize: Math.max(PORTRAIT.minFontSize, LAYOUT_CONFIG.ui.turnIndicator.baseFontSize * scale)
     }
   };
 }

@@ -183,20 +183,26 @@ class GameBoardContainer extends PIXI.Container {
   }
 
   /**
-   * Update layout
+   * Update layout. The board/pieces draw their geometry once at
+   * construction (native size 600, see layout.config.js's board.baseSize)
+   * - rebuilding that geometry on every resize isn't necessary, scaling
+   * the whole container is: both started from the same native size, so
+   * scaling each by the same ratio keeps piece positions aligned to the
+   * board under them.
    */
   updateLayout() {
     const boardLayout = this.layout.getBoardLayout();
 
-    // Update board position (not container position)
     if (this.board) {
       this.board.x = boardLayout.x;
       this.board.y = boardLayout.y;
+      this.board.scale.set(boardLayout.size / this.board.size);
     }
 
     if (this.pieces) {
       this.pieces.x = boardLayout.x;
       this.pieces.y = boardLayout.y;
+      this.pieces.scale.set(boardLayout.size / this.pieces.boardSize);
     }
 
     this.updateBoardBounds(boardLayout);

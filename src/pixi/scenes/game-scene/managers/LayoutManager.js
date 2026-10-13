@@ -1,11 +1,12 @@
-import { 
+import {
   LAYOUT_CONFIG,
   calculateScaleFactor,
   getScaledBoardLayout,
   getScaledDiceLayout,
   getScaledPlayerPanelsLayout,
   getScaledUILayout,
-  getScaleDebugInfo
+  getScaleDebugInfo,
+  isPortraitViewport
 } from '../config/layout.config';
 
 /**
@@ -153,6 +154,15 @@ class LayoutManager {
    */
   isDesktop() {
     return this.viewport.width >= 1024;
+  }
+
+  /**
+   * The actual test the layout functions branch on - orientation, not a
+   * device-width guess. A narrow window is narrow whether it's a phone
+   * or a resized desktop browser.
+   */
+  isPortrait() {
+    return isPortraitViewport(this.viewport.width, this.viewport.height);
   }
 
   /**

@@ -73,16 +73,21 @@ class PixiApp {
       // 6. Wait for the next frame to ensure the canvas is rendered in the DOM
       await new Promise(resolve => requestAnimationFrame(resolve));
 
-      // 7. Setup responsive canvas
-      this.setupResponsiveCanvas(container);
-
-      // 8. Initialize scene manager
+      // 7. Initialize scene manager BEFORE the first resize - setupResponsiveCanvas
+      // does its first resize synchronously, and SceneManager needs to exist to
+      // catch that pixi.resize emit. Otherwise a session that starts in portrait
+      // (not resized into it) never gets corrected: the first scene constructs
+      // assuming landscape and nothing re-delivers the real dimensions to it
+      // unless an actual window resize happens later.
       try {
         this.sceneManager = new SceneManager(this.app);
       } catch (sceneError) {
         console.error('❌ SceneManager creation failed:', sceneError);
         throw sceneError;
       }
+
+      // 8. Setup responsive canvas
+      this.setupResponsiveCanvas(container);
 
       // 9. Setup global event listeners
       this.setupEventListeners();
@@ -178,8 +183,10 @@ class PixiApp {
       // Continue with rest of initialization...
       await new Promise(resolve => requestAnimationFrame(resolve));
       
-      this.setupResponsiveCanvas(container);
+      // SceneManager must exist before the first resize - see the comment
+      // in init() above.
       this.sceneManager = new SceneManager(this.app);
+      this.setupResponsiveCanvas(container);
       this.setupEventListeners();
       await this.sceneManager.showScene('lobby');
 
@@ -213,47 +220,61 @@ class PixiApp {
         const containerWidth = containerRect.width || window.innerWidth;
         const containerHeight = containerRect.height || window.innerHeight;
 
-        // Design aspect ratio (3:2)
-        const baseWidth = 1200;
-        const baseHeight = 800;
-        const designAspectRatio = baseWidth / baseHeight; // 1.5
-
-        // Calculate dimensions that fit in container while maintaining aspect ratio
-        let rendererWidth, rendererHeight;
-        const containerAspectRatio = containerWidth / containerHeight;
-
-        if (containerAspectRatio > designAspectRatio) {
-          // Container is wider than design - fit to height
-          rendererHeight = containerHeight;
-          rendererWidth = rendererHeight * designAspectRatio;
-        } else {
-          // Container is taller than design - fit to width
-          rendererWidth = containerWidth;
-          rendererHeight = rendererWidth / designAspectRatio;
-        }
-
         // Check if DPI changed (moving between monitors)
         const currentDPI = window.devicePixelRatio || 1;
         if (currentDPI !== this.currentDPI) {
           console.log(`🖥️ DPI changed: ${this.currentDPI} → ${currentDPI}`);
           this.currentDPI = currentDPI;
-
-          // Update renderer resolution for new display
           this.app.renderer.resolution = currentDPI;
         }
 
-        // Resize the PixiJS renderer to the calculated size
-        this.app.renderer.resize(rendererWidth, rendererHeight);
+        // A narrow viewport can't be both letterboxed to a fixed 3:2 box
+        // AND reflowed into a portrait-friendly layout - reflow needs the
+        // stage to actually occupy the real viewport. Below this branch,
+        // today's landscape letterbox-and-scale behavior is unchanged.
+        const isPortrait = containerWidth < containerHeight;
 
-        // Calculate scale factor for scene elements
-        const scale = Math.min(rendererWidth / baseWidth, rendererHeight / baseHeight);
+        let layoutWidth;
+        let layoutHeight;
 
-        // Apply scale to stage so our 1200×800 design fits perfectly
-        this.app.stage.scale.set(scale);
+        if (isPortrait) {
+          this.app.renderer.resize(containerWidth, containerHeight);
+          this.app.stage.scale.set(1);
+          this.app.stage.x = 0;
+          this.app.stage.y = 0;
 
-        // Center the stage within the renderer
-        this.app.stage.x = (rendererWidth - baseWidth * scale) / 2;
-        this.app.stage.y = (rendererHeight - baseHeight * scale) / 2;
+          layoutWidth = containerWidth;
+          layoutHeight = containerHeight;
+        } else {
+          // Design aspect ratio (3:2)
+          const baseWidth = 1200;
+          const baseHeight = 800;
+          const designAspectRatio = baseWidth / baseHeight; // 1.5
+
+          // Calculate dimensions that fit in container while maintaining aspect ratio
+          let rendererWidth, rendererHeight;
+          const containerAspectRatio = containerWidth / containerHeight;
+
+          if (containerAspectRatio > designAspectRatio) {
+            // Container is wider than design - fit to height
+            rendererHeight = containerHeight;
+            rendererWidth = rendererHeight * designAspectRatio;
+          } else {
+            // Container is taller than design - fit to width
+            rendererWidth = containerWidth;
+            rendererHeight = rendererWidth / designAspectRatio;
+          }
+
+          this.app.renderer.resize(rendererWidth, rendererHeight);
+
+          const scale = Math.min(rendererWidth / baseWidth, rendererHeight / baseHeight);
+          this.app.stage.scale.set(scale);
+          this.app.stage.x = (rendererWidth - baseWidth * scale) / 2;
+          this.app.stage.y = (rendererHeight - baseHeight * scale) / 2;
+
+          layoutWidth = baseWidth;
+          layoutHeight = baseHeight;
+        }
 
         // Get canvas and center it in container using CSS
         const canvas = this.app.canvas;
@@ -263,13 +284,14 @@ class PixiApp {
         canvas.style.top = '50%';
         canvas.style.transform = 'translate(-50%, -50%)';
 
-        // Emit resize event for scenes to handle
+        // Emit resize event for scenes to handle - width/height are the
+        // design-space dimensions LayoutManager should use (always
+        // 1200x800 in landscape, the real viewport in portrait), not
+        // necessarily the renderer's actual pixel size.
         eventBus.emit('pixi.resize', {
-          width: rendererWidth,
-          height: rendererHeight,
-          scale,
-          baseWidth,
-          baseHeight,
+          width: layoutWidth,
+          height: layoutHeight,
+          isPortrait,
           dpi: currentDPI
         });
       } catch (error) {

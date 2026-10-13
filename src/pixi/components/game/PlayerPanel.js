@@ -45,6 +45,31 @@ class PlayerPanel extends PIXI.Container {
   }
 
   /**
+   * Rebuild the panel at a new size - every create* method draws
+   * relative to this.width/this.height, so a resize needs a full clear
+   * and redraw, not just a reposition (PlayerAreaContainer.updateLayout
+   * needs real portrait-sized panels, not landscape-sized ones moved).
+   */
+  resize(width, height) {
+    const wasHighlighted = this.isHighlighted;
+    const savedPlayerData = this.playerData;
+
+    gsap.killTweensOf([this, this.scale, this.background, this.border, this.glowBorder, this.turnIndicator]);
+    this.removeChildren().forEach((child) => child.destroy({ children: true }));
+
+    this.width = width;
+    this.height = height;
+    this.isHighlighted = false;
+    this.isCurrentTurn = false;
+    this.playerData = null;
+
+    this.createPanel();
+
+    if (wasHighlighted) this.setHighlighted(true);
+    if (savedPlayerData) this.updatePlayerData(savedPlayerData);
+  }
+
+  /**
    * Create panel background
    */
   createBackground() {

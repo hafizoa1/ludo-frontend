@@ -104,11 +104,15 @@ class PlayerAreaContainer extends PIXI.Container {
    */
   updateLayout() {
     const panelsLayout = this.layout.getPlayerPanelsLayout();
-    
+
     this.playerPanels.forEach((panel, index) => {
       const panelLayout = panelsLayout[index];
       panel.x = panelLayout.x;
       panel.y = panelLayout.y;
+
+      if (panel.width !== panelLayout.width || panel.height !== panelLayout.height) {
+        panel.resize(panelLayout.width, panelLayout.height);
+      }
     });
   }
 

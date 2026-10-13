@@ -1,7 +1,8 @@
 import { gsap } from 'gsap';
 import LobbyScene from './scenes/LobbyScene';
-//import GameScene from './scenes/GameScene'; 
+//import GameScene from './scenes/GameScene';
 import GameScene from './scenes/game-scene/GameScene';
+import eventBus from '../utils/EventBus';
 
 /**
  * SceneManager - Handles scene transitions and management
@@ -14,6 +15,17 @@ class SceneManager {
     this.currentScene = null;
     this.scenes = new Map();
     this.transitioning = false;
+    // A scene created well after the last real resize event (the common
+    // case - most resizes happen once, early) never gets another one to
+    // react to, so it would otherwise stay laid out for whatever the
+    // viewport was when SceneManager was first built. Cache it and apply
+    // it explicitly to every newly-shown scene instead.
+    this.lastResizeData = null;
+
+    this.unsubscribeResize = eventBus.subscribe('pixi.resize', (data) => {
+      this.lastResizeData = data;
+      this.currentScene?.onResize?.(data.width, data.height, data);
+    });
 
     console.log('🎬 SceneManager created successfully');
   }
@@ -127,6 +139,17 @@ class SceneManager {
   }
 
   /**
+   * Apply the most recent resize to a scene that just got added - a
+   * newly-constructed scene otherwise defaults to assuming landscape
+   * until the next real resize event, which may never come.
+   */
+  applyLastResize(scene) {
+    if (this.lastResizeData) {
+      scene.onResize?.(this.lastResizeData.width, this.lastResizeData.height, this.lastResizeData);
+    }
+  }
+
+  /**
    * Show scene immediately (no transition)
    */
   async showSceneImmediate(scene) {
@@ -148,7 +171,8 @@ class SceneManager {
       console.log('🎬 Adding new scene to stage');
       this.app.stage.addChild(scene);
       console.log('🎬 Scene added to stage');
-      
+      this.applyLastResize(scene);
+
       if (scene.onShow) {
         console.log('🎬 Calling onShow on new scene');
         await scene.onShow();
@@ -189,7 +213,8 @@ class SceneManager {
       // Add new scene (hidden)
       newScene.alpha = 0;
       this.app.stage.addChild(newScene);
-      
+      this.applyLastResize(newScene);
+
       if (newScene.onShow) {
         await newScene.onShow();
       }
@@ -224,7 +249,8 @@ class SceneManager {
       // Position new scene off-screen
       newScene.x = 1200; // Off to the right
       this.app.stage.addChild(newScene);
-      
+      this.applyLastResize(newScene);
+
       if (newScene.onShow) {
         await newScene.onShow();
       }
@@ -262,6 +288,11 @@ class SceneManager {
    */
   destroy() {
     console.log('🎬 Destroying SceneManager...');
+
+    if (this.unsubscribeResize) {
+      this.unsubscribeResize();
+      this.unsubscribeResize = null;
+    }
 
     this.scenes.forEach(scene => {
       if (scene.destroy) {
